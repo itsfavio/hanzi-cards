@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hanzi Cards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Serif+SC:wght@500;700;900&family=Noto+Serif+TC:wght@500;700;900&display=swap">
+<style>
+[hidden]{display:none!important}
+html,body{margin:0}
+img{max-width:100%}
+
+/* Layout: chapter rail on the left, study bench on the right (card prism + stroke grid); stacks to one column on phones. */
+:root {
+  --paper: #ECEFEA;
+  --surface: #F8FAF6;
+  --raised: #FFFFFF;
+  --ink: #1A201D;
+  --muted: #5B6760;
+  --line: #CDD5CE;
+  --hl: #E0E6DF;
+  --grid: #E7B3AC;
+  --seal: #B5302A;
+  --seal-ink: #FFFFFF;
+  --ok: #2C7447;
+  --t1: #C33A30; --t2: #2B8148; --t3: #2E5FB3; --t4: #7A3EA6; --t5: #7A847E;
+  --shadow: 0 1px 0 rgba(26,32,29,.05), 0 10px 30px -12px rgba(26,32,29,.22);
+  --f-han: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --f-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #131715; --surface: #1B211E; --raised: #222925; --ink: #E5EAE5; --muted: #98A49D;
+    --line: #313A35; --hl: #27302B; --grid: #5C302B; --seal: #E25B4D; --seal-ink: #1A0D0B; --ok: #5DBF7D;
+    --t1: #F06C60; --t2: #5DC07E; --t3: #73A0EC; --t4: #BC8EE8; --t5: #8E9A93;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #131715; --surface: #1B211E; --raised: #222925; --ink: #E5EAE5; --muted: #98A49D;
+  --line: #313A35; --hl: #27302B; --grid: #5C302B; --seal: #E25B4D; --seal-ink: #1A0D0B; --ok: #5DBF7D;
+  --t1: #F06C60; --t2: #5DC07E; --t3: #73A0EC; --t4: #BC8EE8; --t5: #8E9A93;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+:root.trad { --f-han: "Noto Serif TC", "Songti TC", "PMingLiU", "MingLiU", serif; }
+html, body { background: var(--paper); color: var(--ink); }
+body { font-family: var(--f-ui); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+.han { font-family: var(--f-han); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.app {
+  display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh;
+  padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px));
+}
+/* ---------- chapter rail ---------- */
+.rail { border-right: 1px solid var(--line); background: var(--surface); padding-block: 22px; padding-inline: 18px; display: flex; flex-direction: column; gap: 22px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.seal { width: 38px; height: 38px; border-radius: 6px; background: #fff; color: #4F46E5; border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--f-ui); font-weight: 800; font-size: 13px; line-height: 1; letter-spacing: .03em; flex: none; }
+.brand-name { font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
+.brand-sub { font-size: 12px; color: var(--muted); }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.chap-list { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.chap { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 6px; }
+.chap:hover { background: var(--hl); }
+.chap[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.chap .n { font-family: var(--f-mono); font-size: 12px; opacity: .65; }
+.chap .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chap.example .nm::after { content: "example"; font-family: var(--f-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-left: 6px; opacity: .7; }
+.new-chap { display: flex; gap: 6px; }
+.new-chap input { flex: 1; min-width: 0; }
+.sync { margin-top: auto; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.on { background: var(--ok); }
+
+/* ---------- inputs & buttons ---------- */
+.field { background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+.field:focus { border-color: var(--ink); outline: none; }
+.btn { border: 1px solid var(--line); background: var(--raised); border-radius: 6px; padding: 7px 12px; display: inline-flex; align-items: center; gap: 7px; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.seal-btn { background: var(--seal); color: var(--seal-ink); border-color: var(--seal); }
+.btn.ghost { background: none; border-color: transparent; }
+.btn.ghost:hover { background: var(--hl); border-color: transparent; }
+.btn.danger { color: var(--seal); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn[aria-pressed="true"] { background: var(--hl); border-color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--raised); }
+.seg button { border: 0; background: none; padding: 5px 10px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+/* ---------- main ---------- */
+main { min-width: 0; padding-block: 26px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; }
+.head h1 { margin: 0; font-size: 28px; line-height: 1.15; letter-spacing: -.02em; font-weight: 600; text-wrap: balance; }
+.head-meta { color: var(--muted); font-size: 13px; margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.head-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { border: 0; background: none; padding: 9px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--muted); font-weight: 500; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--seal); }
+.banner { border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.inline-confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+
+/* ---------- study ---------- */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
+.study-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.study-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; }
+.study-bar .grp { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lbl { font-size: 12px; color: var(--muted); }
+.progress { height: 3px; background: var(--hl); border-radius: 2px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--ok); width: 0; transition: width .3s; }
+
+.stage { perspective: 1500px; width: 100%; max-width: 560px; margin: 0 auto; aspect-ratio: 1.45; max-height: 380px; }
+.prism { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .55s cubic-bezier(.3,.7,.25,1); cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.prism.instant { transition: none; }
+.face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; padding: 16px 20px; overflow: hidden; }
+.face-tag { display: flex; justify-content: space-between; align-items: center; }
+.face-body { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 0; gap: 6px; }
+.face-foot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); min-height: 18px; }
+.f-han .word { font-family: var(--f-han); font-weight: 700; line-height: 1; letter-spacing: .02em; }
+.word.l1 { font-size: clamp(88px, 22vw, 150px); }
+.word.l2 { font-size: clamp(64px, 16vw, 116px); }
+.word.l3 { font-size: clamp(48px, 12vw, 88px); }
+.word.l4 { font-size: clamp(36px, 9vw, 66px); }
+.word.l5 { font-size: clamp(26px, 6.5vw, 46px); }
+.trad { font-family: var(--f-han); color: var(--muted); font-size: 15px; }
+.pin-big { font-size: clamp(34px, 8vw, 58px); font-weight: 500; letter-spacing: .01em; line-height: 1.15; overflow-wrap: anywhere; }
+.pin-big span + span { margin-left: .28em; }
+.pin-num { font-family: var(--f-mono); font-size: 14px; color: var(--muted); }
+.tone1 { color: var(--t1); } .tone2 { color: var(--t2); } .tone3 { color: var(--t3); } .tone4 { color: var(--t4); } .tone5 { color: var(--t5); }
+.def-main { font-size: clamp(22px, 4.6vw, 32px); font-weight: 500; line-height: 1.2; text-wrap: balance; max-width: 30ch; }
+.def-rest { color: var(--muted); font-size: 14px; max-width: 46ch; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mw { font-size: 13px; color: var(--muted); }
+.mw b { font-family: var(--f-han); font-weight: 500; color: var(--ink); }
+.legend { display: flex; gap: 8px; font-family: var(--f-mono); font-size: 11px; }
+
+.card-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.faces { display: inline-flex; gap: 4px; }
+.faces button { width: 38px; height: 34px; border: 1px solid var(--line); background: var(--raised); border-radius: 6px; font-size: 14px; }
+.faces button[aria-pressed="true"] { border-color: var(--seal); color: var(--seal); font-weight: 600; }
+.faces .zi { font-family: var(--f-han); font-weight: 700; }
+.counter { font-family: var(--f-mono); font-size: 13px; color: var(--muted); min-width: 64px; text-align: center; }
+.audio-row { display: flex; gap: 8px; justify-content: center; }
+.audio-row .btn { padding-inline: 16px; }
+.grade { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.grade .btn { min-width: 140px; justify-content: center; }
+.status-pill { font-family: var(--f-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.status-pill.s1 { border-color: var(--t4); color: var(--t4); }
+.status-pill.s2 { border-color: var(--ok); color: var(--ok); }
+.voice-note { font-size: 12.5px; color: var(--muted); text-align: center; }
+.keys { font-size: 12px; color: var(--muted); text-align: center; }
+kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--raised); }
+
+/* ---------- stroke panel ---------- */
+.strokes { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.strokes h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.char-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.char-tabs button { width: 40px; height: 40px; border: 1px solid var(--line); background: var(--raised); border-radius: 6px; font-family: var(--f-han); font-size: 22px; font-weight: 500; line-height: 1; }
+.char-tabs button[aria-pressed="true"] { border-color: var(--seal); color: var(--seal); }
+.grid-box { position: relative; width: 100%; max-width: 268px; aspect-ratio: 1; margin: 0 auto; background: var(--raised); border: 1.5px solid var(--seal); }
+.grid-box svg.rice { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.grid-box .hw { position: absolute; inset: 0; touch-action: none; }
+.grid-box .hw svg { display: block; }
+.stroke-info { font-size: 13px; color: var(--muted); text-align: center; min-height: 20px; }
+.stroke-btns { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- word list ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; }
+th { text-align: left; font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+td { padding: 6px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.w { font-family: var(--f-han); font-size: 22px; font-weight: 500; white-space: nowrap; }
+td input { width: 100%; border: 1px solid transparent; background: none; border-radius: 5px; padding: 5px 7px; }
+td input:hover { border-color: var(--line); }
+td input:focus { border-color: var(--ink); background: var(--raised); outline: none; }
+td.pc { width: 22%; } td.dc { width: 48%; }
+.icon-btn { border: 0; background: none; padding: 6px; border-radius: 5px; color: var(--muted); display: inline-grid; place-items: center; }
+.icon-btn:hover { background: var(--hl); color: var(--ink); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* ---------- add words ---------- */
+.add-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+.add-in { display: flex; flex-direction: column; gap: 10px; }
+.add-in textarea { min-height: 230px; resize: vertical; line-height: 1.7; font-size: 16px; }
+.hint { font-size: 13px; color: var(--muted); }
+.hint code { font-family: var(--f-han); font-size: 13px; background: var(--hl); padding: 1px 5px; border-radius: 4px; }
+.hint ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.pending { display: flex; flex-direction: column; gap: 12px; }
+.pick { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--raised); border-radius: 6px; padding: 5px 9px; display: inline-flex; gap: 7px; align-items: baseline; max-width: 100%; text-align: left; }
+.chip:hover { border-color: var(--ink); }
+.chip .cw { font-family: var(--f-han); font-size: 18px; font-weight: 500; }
+.chip .cp { font-size: 13px; }
+.chip .cd { font-size: 12px; color: var(--muted); max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); }
+.prow .pw { font-family: var(--f-han); font-size: 28px; font-weight: 500; line-height: 1.1; grid-row: span 2; }
+.prow .pfields { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
+.prow .pfields > * { min-width: 0; }
+.prow select, .prow .pin-in { width: 140px; }
+.prow .def-in { flex: 1; min-width: 160px; }
+.prow .pnote { font-size: 12px; color: var(--muted); grid-column: 2; }
+.prow.dup { opacity: .6; }
+.add-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.empty { border: 1px dashed var(--line); border-radius: 12px; padding: 34px 20px; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty .big { font-family: var(--f-han); font-size: 54px; color: var(--line); line-height: 1; }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--paper); padding: 9px 16px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- script setting ---------- */
+.script-set { display: flex; flex-direction: column; gap: 8px; }
+.script-set .seg { width: 100%; }
+.script-set .seg button { flex: 1; padding: 6px 8px; }
+.script-set .seg .h { font-family: var(--f-han); font-weight: 700; margin-right: 4px; }
+.sc-s { font-family: "Noto Serif SC", "Songti SC", serif; }
+.sc-t { font-family: "Noto Serif TC", "Songti TC", serif; }
+.modal-back { position: fixed; inset: 0; z-index: 30; background: color-mix(in srgb, var(--ink) 45%, transparent); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); width: 100%; max-width: 560px; padding: 26px; display: flex; flex-direction: column; gap: 10px; max-height: 100%; overflow-y: auto; }
+.modal h2 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
+.modal p { margin: 0; color: var(--muted); font-size: 14px; }
+.script-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 8px; }
+.script-choices button { border: 1px solid var(--line); background: var(--raised); border-radius: 10px; padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 4px; }
+.script-choices button:hover { border-color: var(--seal); }
+.script-choices .big { font-size: 46px; font-weight: 700; line-height: 1.1; color: var(--seal); }
+.script-choices b { font-size: 16px; }
+.script-choices .sub { font-size: 13px; color: var(--muted); }
+.legend .lbl { font-family: var(--f-ui); margin-right: 2px; }
+
+/* ---------- narrow ---------- */
+@media (max-width: 980px) {
+  .bench { grid-template-columns: minmax(0, 1fr); }
+  .strokes { max-width: 560px; width: 100%; margin: 0 auto; }
+  .add-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px; }
+  .rail .eyebrow, .sync { display: none; }
+  .chap-list { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+  .chap-list li { flex: none; }
+  .chap { border: 1px solid var(--line); white-space: nowrap; padding: 6px 10px; }
+  .chap .nm { overflow: visible; }
+  main { padding-block: 18px 50px; }
+  .head h1 { font-size: 23px; }
+  .face { padding: 12px 14px; }
+  .grade .btn { min-width: 0; flex: 1; }
+  .counter { display: none; }
+  .card-nav .btn { padding-inline: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prism, .toast, .progress i { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="rail" aria-label="Chapters">
+    <div class="brand">
+      <div class="seal" aria-hidden="true">HZC</div>
+      <div>
+        <div class="brand-name">Hanzi Cards</div>
+        <div class="brand-sub">Mandarin flashcards</div>
+      </div>
+    </div>
+    <div class="script-set">
+      <div class="eyebrow">Characters</div>
+      <div class="seg" id="segScript" role="group" aria-label="Character set">
+        <button data-s="simp"><span class="h sc-s">简</span>Simplified</button><button data-s="trad"><span class="h sc-t">繁</span>Traditional</button>
+      </div>
+    </div>
+    <div class="eyebrow">Chapters</div>
+    <ul class="chap-list" id="chapList"></ul>
+    <form class="new-chap" id="newChapForm">
+      <input class="field" id="newChapName" placeholder="New chapter, e.g. 第三课" aria-label="New chapter name" maxlength="60">
+      <button class="btn" type="submit" aria-label="Create chapter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg></button>
+    </form>
+    <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Saved in this browser</span></div>
+  </nav>
+
+  <main>
+    <div class="wrap">
+      <div class="head">
+        <div>
+          <div class="eyebrow" id="headEyebrow">Chapter</div>
+          <h1 id="chapTitle">—</h1>
+          <div class="head-meta" id="headMeta"></div>
+        </div>
+        <div class="head-actions" id="headActions"></div>
+      </div>
+      <div id="headConfirm" hidden></div>
+      <div class="banner" id="sampleBanner" hidden>
+        <span>This is an example deck so you can try the cards. It isn't saved. Make a chapter to keep your own words.</span>
+        <button class="btn primary" id="bannerNew">New chapter</button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-study" data-view="study">Study</button>
+        <button class="tab" role="tab" id="tab-list" data-view="list">Words</button>
+        <button class="tab" role="tab" id="tab-add" data-view="add">Add words</button>
+      </div>
+
+      <!-- STUDY -->
+      <section id="v-study">
+        <div class="bench">
+          <div class="study-col">
+            <div class="study-bar">
+              <div class="grp">
+                <span class="lbl">Front</span>
+                <div class="seg" id="segFront">
+                  <button data-f="0" class="han">字</button><button data-f="1">Pinyin</button><button data-f="2">Meaning</button>
+                </div>
+              </div>
+              <div class="grp">
+                <div class="seg" id="segFilter">
+                  <button data-v="all">All</button><button data-v="learn">Not known yet</button>
+                </div>
+                <button class="btn ghost" id="shuffleBtn" aria-pressed="false" title="Shuffle">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h2.5c3 0 4 8 7 8H14M2 12h2.5c1.3 0 2.2-1.4 3-3M10 5.5c.5-.9 1.1-1.5 2-1.5H14M12.5 2.5 14 4l-1.5 1.5M12.5 10.5 14 12l-1.5 1.5"/></svg>Shuffle
+                </button>
+              </div>
+            </div>
+            <div class="progress" title="Known in this chapter"><i id="progBar"></i></div>
+
+            <div id="studyEmpty" hidden></div>
+            <div id="studyCard">
+              <div class="stage" id="stage">
+                <div class="prism" id="prism" role="button" tabindex="0" aria-label="Flashcard. Press to turn to the next side.">
+                  <div class="face f-han" data-i="0">
+                    <div class="face-tag"><span class="eyebrow">字 · Character</span><span class="status-pill" data-st></span></div>
+                    <div class="face-body"><div class="word" id="fWord"></div><div class="trad" id="fTrad"></div></div>
+                    <div class="face-foot"><span>Tap to turn</span><span class="mono" data-pos></span></div>
+                  </div>
+                  <div class="face f-pin" data-i="1">
+                    <div class="face-tag"><span class="eyebrow">拼音 · Pinyin</span><span class="status-pill" data-st></span></div>
+                    <div class="face-body"><div class="pin-big" id="fPin"></div><div class="pin-num" id="fPinNum"></div></div>
+                    <div class="face-foot"><span class="legend" title="Tone colors: 1 high and flat, 2 rising, 3 dipping, 4 falling, 5 neutral"><span class="lbl">Tones</span><span class="tone1">1 ˉ</span><span class="tone2">2 ˊ</span><span class="tone3">3 ˇ</span><span class="tone4">4 ˋ</span><span class="tone5">5 ·</span></span><span class="mono" data-pos></span></div>
+                  </div>
+                  <div class="face f-def" data-i="2">
+                    <div class="face-tag"><span class="eyebrow">意思 · Meaning</span><span class="status-pill" data-st></span></div>
+                    <div class="face-body"><div class="def-main" id="fDef"></div><div class="def-rest" id="fDefRest"></div><div class="mw" id="fMw"></div></div>
+                    <div class="face-foot"><span>Tap to turn</span><span class="mono" data-pos></span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-nav" id="cardNav">
+              <button class="btn" id="prevBtn" aria-label="Previous card"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>Prev</button>
+              <div class="faces" id="faceBtns">
+                <button data-f="0" class="zi" aria-label="Character side">字</button><button data-f="1" aria-label="Pinyin side">pīn</button><button data-f="2" aria-label="Meaning side">EN</button>
+              </div>
+              <span class="counter" id="counter">0 / 0</span>
+              <button class="btn" id="nextBtn" aria-label="Next card">Next<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 3 5 5-5 5"/></svg></button>
+            </div>
+            <div class="audio-row" id="audioRow">
+              <button class="btn seal-btn" id="speakBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.4 3.8a6 6 0 0 1 0 8.4"/></svg>Hear it</button>
+              <button class="btn" id="slowBtn" aria-pressed="false" title="Slower speech">Slow</button>
+            </div>
+            <div class="voice-note" id="voiceNote" hidden></div>
+            <div class="grade" id="gradeRow">
+              <button class="btn" id="learnBtn">Still learning</button>
+              <button class="btn primary" id="knowBtn">I know it</button>
+            </div>
+            <div class="keys"><kbd>Space</kbd> turn · <kbd>←</kbd> <kbd>→</kbd> cards · <kbd>S</kbd> speak · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sides</div>
+          </div>
+
+          <aside class="strokes" id="strokePanel">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <h2>Stroke order</h2><span class="eyebrow">笔顺</span>
+            </div>
+            <div class="char-tabs" id="charTabs"></div>
+            <div class="grid-box">
+              <svg class="rice" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <g stroke="var(--grid)" stroke-width=".6" stroke-dasharray="2.2 2" fill="none">
+                  <path d="M50 0V100M0 50H100M0 0 100 100M100 0 0 100"/>
+                </g>
+              </svg>
+              <div class="hw" id="hw"></div>
+            </div>
+            <div class="stroke-info" id="strokeInfo"></div>
+            <div class="stroke-btns">
+              <button class="btn primary" id="playBtn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4L13 8z"/></svg>Play</button>
+              <button class="btn" id="quizBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Practice</button>
+              <button class="btn ghost" id="charSpeak" aria-label="Hear this character"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg></button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- WORD LIST -->
+      <section id="v-list" hidden>
+        <div id="listBody"></div>
+      </section>
+
+      <!-- ADD -->
+      <section id="v-add" hidden>
+        <div class="add-grid">
+          <div class="add-in">
+            <label for="addText" class="eyebrow">Type or paste words</label>
+            <textarea class="field han" id="addText" spellcheck="false" placeholder="你好&#10;谢谢 老师 学生&#10;朋友 péngyou friend&#10;zaijian&#10;he1 cha2"></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary" id="lookupBtn">Look up</button>
+              <button class="btn" id="photoBtn" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h2l1-1.4h3l1 1.4h2a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/><circle cx="8" cy="9" r="2.1"/></svg>From a photo</button>
+              <button class="btn ghost" id="clearBtn">Clear</button>
+              <input type="file" id="photoInput" accept="image/*" hidden>
+            </div>
+            <div class="hint" id="ocrStatus" hidden></div>
+            <div class="hint">
+              One entry per line. Each line can be:
+              <ul>
+                <li>Characters: <code>你好</code> or several words separated by spaces <code>谢谢 老师</code></li>
+                <li>Characters plus your own meaning: <code>你好 hello there</code> (pinyin right after the characters is detected and used to pick the reading)</li>
+                <li>Pinyin to search: <code>nǐ hǎo</code>, <code>ni3 hao3</code> or <code>nihao</code>, then pick the word</li>
+              </ul>
+              Or press <b>From a photo</b> to read characters off a picture of a vocab list or textbook page.
+            </div>
+            <div class="hint" id="dictStatus"></div>
+          </div>
+          <div class="pending" id="pending"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="modal-back" id="scriptModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+    <div class="eyebrow">Before you start</div>
+    <h2 id="smTitle">Which characters is your class using?</h2>
+    <p>Cards, stroke order and the word list will use this set. You can switch any time with the 简 / 繁 toggle above your chapters.</p>
+    <div class="script-choices">
+      <button data-s="simp"><span class="big sc-s">学习</span><b>Simplified</b><span class="sub sc-s">简体字</span><span class="sub">Used in mainland China and Singapore</span></button>
+      <button data-s="trad"><span class="big sc-t">學習</span><b>Traditional</b><span class="sub sc-t">繁體字</span><span class="sub">Used in Taiwan, Hong Kong and Macau</span></button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.3/dist/hanzi-writer.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+const ICON_TRASH = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>';
+const ICON_X = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+const ICON_SPK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg>';
+
+/* ================= storage helpers ================= */
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+/* ================= pinyin ================= */
+const MARKS = { a: "āáǎà", e: "ēéěè", i: "īíǐì", o: "ōóǒò", u: "ūúǔù", "ü": "ǖǘǚǜ" };
+function syllableMark(s) {
+  const m = s.match(/^([A-Za-zü:]+?)([1-5])$/);
+  if (!m) return s.replace(/u:/g, "ü").replace(/U:/g, "Ü");
+  const base = m[1].replace(/u:/g, "ü").replace(/U:/g, "Ü").replace(/v/g, "ü");
+  const tone = +m[2];
+  if (tone === 5) return base;
+  const low = base.toLowerCase();
+  let i = low.indexOf("a");
+  if (i < 0) i = low.indexOf("e");
+  if (i < 0) { const ou = low.indexOf("ou"); if (ou >= 0) i = ou; }
+  if (i < 0) { for (let k = low.length - 1; k >= 0; k--) if ("aeiouü".includes(low[k])) { i = k; break; } }
+  if (i < 0) return base;
+  let mk = MARKS[low[i]][tone - 1];
+  if (base[i] !== low[i]) mk = mk.toUpperCase();
+  return base.slice(0, i) + mk + base.slice(i + 1);
+}
+const numToMarks = p => p.split(/\s+/).filter(Boolean).map(syllableMark).join(" ").replace(/ ([,·]) /g, "$1 ");
+const TONE_OF = { "\u0304": 1, "\u0301": 2, "\u030C": 3, "\u0300": 4 };
+function toneOf(syl) {
+  const d = syl.normalize("NFD");
+  for (const ch of d) if (TONE_OF[ch]) return TONE_OF[ch];
+  const m = syl.match(/[1-5]/); return m ? +m[0] : 5;
+}
+function tonesIn(text) {
+  const out = []; const d = text.normalize("NFD");
+  for (const ch of d) { if (TONE_OF[ch]) out.push(TONE_OF[ch]); else if (/[1-4]/.test(ch)) out.push(+ch); }
+  return out;
+}
+const toneless = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/u:/g, "u").replace(/v/g, "u").replace(/[^a-z]/g, "");
+function marksToNum(p) {
+  return p.split(/\s+/).filter(Boolean).map(s => { const t = toneOf(s); const b = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z]/g, ""); return b ? b.toLowerCase() + t : s; }).join(" ");
+}
+function prettyDef(d) {
+  return d.replace(/([\u3400-\u9fff]+\|)?([\u3400-\u9fff]+)\[([A-Za-z:]+[1-5](?: [A-Za-z:]+[1-5])*)\]/g, (m, t, s, p) => (prefs.script === "trad" && t ? t.slice(0, -1) : s) + " (" + numToMarks(p) + ")");
+}
+function splitDef(d) {
+  const parts = d.split(/;\s*/).filter(Boolean);
+  const mw = []; const senses = [];
+  for (const p of parts) { if (/^CL:/.test(p)) mw.push(p.slice(3)); else senses.push(p); }
+  return { senses, mw: mw.join(", ") };
+}
+
+/* ================= state ================= */
+const SAMPLE = {
+  id: "sample", name: "Greetings", sample: true, created: 0,
+  cards: [
+    ["你好", "", "nǐ hǎo", "hello; hi"],
+    ["谢谢", "謝謝", "xiè xie", "to thank; thanks; thank you"],
+    ["老师", "老師", "lǎo shī", "teacher"],
+    ["学生", "學生", "xué sheng", "student; schoolchild"],
+    ["朋友", "", "péng you", "friend; CL:個|个[ge4],位[wei4]"],
+    ["中国", "中國", "Zhōng guó", "China"],
+    ["再见", "再見", "zài jiàn", "goodbye; see you again later"],
+    ["喝茶", "", "hē chá", "to drink tea"]
+  ].map((a, i) => ({ id: "x" + i, w: a[0], t: a[1], p: a[2], d: a[3], s: 0 }))
+};
+const prefs = Object.assign({ cur: null, front: 0, filter: "all", shuffle: false, slow: false, view: "study", script: null }, lsGet("zika.prefs", {}));
+const isTrad = () => prefs.script === "trad";
+const disp = c => (isTrad() && c.t ? c.t : c.w);
+const otherForm = c => (c.t && c.t !== c.w ? (isTrad() ? c.w : c.t) : "");
+const S = {
+  chapters: lsGet("zika.chapters", {}),
+  cloud: false, col: null,
+  order: [], idx: 0, spin: 0,
+  pending: [], picks: [],
+  confirm: null
+};
+function savePrefs() { lsSet("zika.prefs", prefs); }
+function cacheChapters() { lsSet("zika.chapters", S.chapters); }
+function chapterList() { return Object.values(S.chapters).sort((a, b) => (a.created || 0) - (b.created || 0)); }
+function current() {
+  if (prefs.cur && S.chapters[prefs.cur]) return S.chapters[prefs.cur];
+  const list = chapterList();
+  if (list.length) { prefs.cur = list[0].id; return list[0]; }
+  prefs.cur = "sample"; return SAMPLE;
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+/* ================= cloud sync (db capability) ================= */
+const writeQ = {};
+const deleting = new Set();
+function cleanChapter(ch) {
+  return { name: ch.name, created: ch.created || Date.now(), cards: ch.cards.map(c => ({ id: c.id, w: c.w, t: c.t || "", p: c.p || "", d: c.d || "", s: c.s || 0 })) };
+}
+function saveChapter(ch) {
+  if (ch.sample) return;
+  if (!S.cloud) { ch._local = true; cacheChapters(); return; }
+  cacheChapters();
+  const q = writeQ[ch.id] || (writeQ[ch.id] = { busy: false, next: null });
+  q.next = cleanChapter(ch);
+  if (!q.busy) pump(ch.id);
+}
+async function pump(id) {
+  const q = writeQ[id]; q.busy = true;
+  while (q.next) {
+    const data = q.next; q.next = null;
+    try { await S.col.doc(id).set(data); }
+    catch (e) {
+      if (e && (e.code === "invalid_argument" || e.code === "not_granted" || e.code === "revoked")) { goLocal(); break; }
+      if (e && e.code === "quota_exceeded") toast("This chapter is too big to save. Split it into two chapters.");
+      else if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 600 + Math.random() * 600)); if (!q.next) q.next = data; }
+      else { toast("Couldn't save to your account. Changes are kept in this browser."); setSync(false, "Saving failed, kept in this browser"); }
+    }
+  }
+  q.busy = false;
+}
+async function removeChapter(id) {
+  delete S.chapters[id]; cacheChapters();
+  if (S.cloud) { deleting.add(id); try { await S.col.doc(id).delete(); } catch (e) { toast("Couldn't delete it from your account. Try again."); } deleting.delete(id); }
+}
+// Viewers who can't save to their account (e.g. classmates opening a shared link) keep everything in this browser.
+function goLocal() {
+  if (!S.cloud) return;
+  S.cloud = false;
+  if (S.unsub) { try { S.unsub(); } catch (e) {} S.unsub = null; }
+  for (const k in S.chapters) S.chapters[k]._local = true;
+  for (const k in writeQ) writeQ[k].next = null;
+  cacheChapters();
+  setSync(false, "Saved in this browser only");
+}
+function setSync(on, text) { $("#syncDot").classList.toggle("on", on); $("#syncText").textContent = text; }
+
+async function connect() {
+  const c = window.claude;
+  if (!c || typeof c.use !== "function") { setSync(false, "Saved in this browser only"); return; }
+  let db, user;
+  try { [db, user] = await Promise.all([c.use("db"), c.use("user")]); } catch (e) { db = null; }
+  if (!db || !user) { setSync(false, "Saved in this browser only"); return; }
+  const id = await user.id();
+  if (!id) { setSync(false, "Sign in to save to your account"); return; }
+  S.col = db.collection("data/users/" + id);
+  S.cloud = true;
+  setSync(true, "Saved to your Claude account");
+  let synced = false;
+  S.unsub = S.col.onSnapshot(snap => {
+    if (!S.cloud) return;
+    if (snap.metadata.fromCache && snap.empty) return;
+    const next = {};
+    for (const d of snap.docs) {
+      if (!d.exists || deleting.has(d.id)) continue;
+      const v = d.data();
+      if (d.id === "settings") { if (v && (v.script === "simp" || v.script === "trad") && !prefs.script) setScript(v.script, false); continue; }
+      if (!v || !Array.isArray(v.cards)) continue;
+      const inc = { id: d.id, name: String(v.name || "Untitled"), created: v.created || 0, cards: v.cards.map(x => Object.assign({}, x)) };
+      const old = S.chapters[d.id];
+      next[d.id] = old && !old.sample && JSON.stringify(cleanChapter(old)) === JSON.stringify(cleanChapter(inc)) ? old : inc;
+    }
+    for (const k in writeQ) if ((writeQ[k].busy || writeQ[k].next) && S.chapters[k]) next[k] = S.chapters[k];
+    if (!snap.metadata.fromCache && !synced) {
+      synced = true;
+      for (const k in S.chapters) {
+        const ch = S.chapters[k];
+        if (ch._local && !next[k]) { delete ch._local; next[k] = ch; setTimeout(() => saveChapter(ch), 0); }
+      }
+    }
+    const prevSig = sig(); S.chapters = next; cacheChapters();
+    if (sig() !== prevSig) renderAll(true);
+  }, err => {
+    S.cloud = false; setSync(false, "Offline, saving in this browser");
+  });
+}
+function sig() { const ch = current(); return JSON.stringify([chapterList().map(c => [c.id, c.name, c.cards.length]), ch.id, ch.cards.map(c => [c.id, c.p, c.d, c.s])]); }
+
+/* ================= rendering: rail + head ================= */
+function renderRail() {
+  const ul = $("#chapList"); ul.textContent = "";
+  const cur = current();
+  const items = chapterList();
+  for (const ch of items.concat(items.length ? [] : [SAMPLE])) {
+    const li = el("li"); const b = el("button", "chap" + (ch.sample ? " example" : ""));
+    b.setAttribute("aria-current", ch.id === cur.id ? "true" : "false");
+    b.append(el("span", "nm", ch.name), el("span", "n", String(ch.cards.length)));
+    b.addEventListener("click", () => selectChapter(ch.id));
+    li.append(b); ul.append(li);
+  }
+}
+function renderHead() {
+  const ch = current();
+  $("#chapTitle").textContent = ch.name;
+  $("#headEyebrow").textContent = ch.sample ? "Example deck" : "Chapter";
+  const known = ch.cards.filter(c => c.s === 2).length, learning = ch.cards.filter(c => c.s === 1).length;
+  const meta = $("#headMeta"); meta.textContent = "";
+  meta.append(el("span", "mono", ch.cards.length + " cards"), el("span", "mono", known + " known"), el("span", "mono", learning + " still learning"));
+  $("#sampleBanner").hidden = !ch.sample;
+  const act = $("#headActions"); act.textContent = "";
+  if (!ch.sample) {
+    const rn = el("button", "btn ghost", "Rename"); rn.addEventListener("click", () => { S.confirm = "rename"; renderConfirm(); });
+    const del = el("button", "btn ghost danger", "Delete chapter"); del.addEventListener("click", () => { S.confirm = "delete"; renderConfirm(); });
+    if (ch.cards.some(c => c.s)) { const rs = el("button", "btn ghost", "Reset progress"); rs.addEventListener("click", () => { S.confirm = "reset"; renderConfirm(); }); act.append(rs); }
+    act.append(rn, del);
+  }
+  renderConfirm();
+}
+function renderConfirm() {
+  const box = $("#headConfirm"); box.textContent = ""; const ch = current();
+  box.hidden = !S.confirm || ch.sample;
+  if (box.hidden) return;
+  const row = el("div", "inline-confirm");
+  const cancel = el("button", "btn ghost", "Cancel"); cancel.addEventListener("click", () => { S.confirm = null; renderConfirm(); });
+  if (S.confirm === "rename") {
+    const f = el("form", "inline-confirm"); const inp = el("input", "field"); inp.id = "renameInput"; inp.value = ch.name; inp.maxLength = 60; inp.setAttribute("aria-label", "Chapter name");
+    const ok = el("button", "btn primary", "Save name"); ok.type = "submit";
+    f.append(inp, ok, cancel);
+    f.addEventListener("submit", e => { e.preventDefault(); const v = inp.value.trim(); if (v) { ch.name = v; saveChapter(ch); } S.confirm = null; renderAll(); });
+    box.append(f); setTimeout(() => inp.select(), 0); return;
+  }
+  if (S.confirm === "delete") {
+    row.append(el("span", null, `Delete “${ch.name}” and its ${ch.cards.length} cards? This can't be undone.`));
+    const ok = el("button", "btn seal-btn", "Delete"); ok.addEventListener("click", async () => { S.confirm = null; const id = ch.id; prefs.cur = null; await removeChapter(id); savePrefs(); toast("Chapter deleted"); renderAll(); });
+    row.append(ok, cancel);
+  }
+  if (S.confirm === "reset") {
+    row.append(el("span", null, "Mark every card in this chapter as new again?"));
+    const ok = el("button", "btn primary", "Reset"); ok.addEventListener("click", () => { ch.cards.forEach(c => c.s = 0); saveChapter(ch); S.confirm = null; renderAll(); });
+    row.append(ok, cancel);
+  }
+  box.append(row);
+}
+function setView(v) {
+  prefs.view = v; savePrefs();
+  for (const t of $$(".tab")) t.setAttribute("aria-selected", t.dataset.view === v ? "true" : "false");
+  $("#v-study").hidden = v !== "study"; $("#v-list").hidden = v !== "list"; $("#v-add").hidden = v !== "add";
+  if (v === "study") { showCard(); }
+  if (v === "list") renderList();
+  if (v === "add") { renderPending(); if (!current().sample) loadDict().catch(() => {}); }
+}
+function selectChapter(id) {
+  prefs.cur = id; savePrefs(); S.confirm = null; S.idx = 0;
+  renderAll();
+}
+function renderAll(keepPos) {
+  renderRail(); renderHead();
+  buildOrder(keepPos);
+  setView(prefs.view);
+}
+
+/* ================= study ================= */
+function buildOrder(keepPos) {
+  const ch = current();
+  const curId = keepPos && S.order[S.idx];
+  let ids = ch.cards.filter(c => prefs.filter === "all" || c.s !== 2).map(c => c.id);
+  if (prefs.shuffle) {
+    const old = keepPos ? S.order.filter(i => ids.includes(i)) : [];
+    const rest = ids.filter(i => !old.includes(i));
+    for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+    ids = old.concat(rest);
+  }
+  S.order = ids;
+  if (curId && ids.includes(curId)) S.idx = ids.indexOf(curId);
+  if (S.idx >= ids.length) S.idx = Math.max(0, ids.length - 1);
+  for (const b of $$("#segFront button")) b.setAttribute("aria-pressed", +b.dataset.f === prefs.front ? "true" : "false");
+  for (const b of $$("#segFilter button")) b.setAttribute("aria-pressed", b.dataset.v === prefs.filter ? "true" : "false");
+  $("#shuffleBtn").setAttribute("aria-pressed", prefs.shuffle ? "true" : "false");
+  $("#slowBtn").setAttribute("aria-pressed", prefs.slow ? "true" : "false");
+  const known = ch.cards.filter(c => c.s === 2).length;
+  $("#progBar").style.width = ch.cards.length ? (known / ch.cards.length * 100) + "%" : "0";
+}
+function cardAt() { const ch = current(); const id = S.order[S.idx]; return ch.cards.find(c => c.id === id) || null; }
+let lastCardId = null;
+function showCard() {
+  const ch = current(); const card = cardAt();
+  const empty = $("#studyEmpty");
+  const has = !!card;
+  $("#studyCard").hidden = !has; $("#cardNav").hidden = !has; $("#gradeRow").hidden = !has; $("#audioRow").hidden = !has; $("#strokePanel").hidden = !has;
+  $(".keys").hidden = !has;
+  empty.hidden = has; empty.textContent = "";
+  if (!has) {
+    const box = el("div", "empty"); box.append(el("div", "big", "空"));
+    if (!ch.cards.length) {
+      box.append(el("div", null, "No cards in this chapter yet."));
+      const b = el("button", "btn primary", "Add words"); b.addEventListener("click", () => setView("add")); box.append(b);
+    } else {
+      box.append(el("div", null, "You've marked every card here as known."));
+      const b = el("button", "btn primary", "Study all cards"); b.addEventListener("click", () => { prefs.filter = "all"; savePrefs(); buildOrder(); showCard(); }); box.append(b);
+    }
+    empty.append(box); lastCardId = null; return;
+  }
+  // character face
+  const shown = disp(card);
+  const w = $("#fWord"); w.textContent = shown;
+  const len = [...shown].length; w.className = "word l" + Math.min(5, len <= 2 ? len : len <= 3 ? 3 : len <= 4 ? 4 : 5);
+  const of = otherForm(card);
+  $("#fTrad").textContent = of ? (isTrad() ? "Simplified " : "Traditional ") + of : "";
+  // pinyin face
+  const pin = $("#fPin"); pin.textContent = "";
+  for (const s of (card.p || "").split(/\s+/).filter(Boolean)) pin.append(el("span", "tone" + toneOf(s), s));
+  if (!card.p) pin.append(el("span", "tone5", "—"));
+  $("#fPinNum").textContent = card.p ? marksToNum(card.p) : "";
+  // meaning face
+  const { senses, mw } = splitDef(prettyDef(card.d || ""));
+  $("#fDef").textContent = senses[0] || "No definition yet";
+  $("#fDefRest").textContent = senses.slice(1).join("; ");
+  const mwEl = $("#fMw"); mwEl.textContent = "";
+  if (mw) { mwEl.append("Measure word: "); mwEl.append(el("b", null, mw)); }
+  const label = ["New", "Learning", "Known"][card.s || 0];
+  for (const p of $$("[data-st]")) { p.textContent = label; p.className = "status-pill s" + (card.s || 0); }
+  for (const p of $$("[data-pos]")) p.textContent = (S.idx + 1) + " / " + S.order.length;
+  $("#counter").textContent = (S.idx + 1) + " / " + S.order.length;
+  $("#prevBtn").disabled = S.idx === 0; $("#nextBtn").disabled = S.idx >= S.order.length - 1;
+  $("#learnBtn").setAttribute("aria-pressed", card.s === 1 ? "true" : "false");
+  $("#knowBtn").setAttribute("aria-pressed", card.s === 2 ? "true" : "false");
+  if (card.id !== lastCardId) { lastCardId = card.id; setFace(prefs.front, true); renderCharTabs(card); }
+  else updateFaceBtns();
+}
+function faceNow() { return ((S.spin % 3) + 3) % 3; }
+function applySpin(instant) {
+  const p = $("#prism");
+  if (instant) p.classList.add("instant");
+  p.style.transform = `translateZ(calc(var(--r) * -1)) rotateY(${-120 * S.spin}deg)`;
+  if (instant) { void p.offsetWidth; p.classList.remove("instant"); }
+  updateFaceBtns();
+}
+function setFace(f, instant) {
+  if (instant) S.spin = f; else S.spin += (f - faceNow() + 3) % 3;
+  applySpin(instant);
+}
+function turn() { S.spin += 1; applySpin(false); }
+function updateFaceBtns() { const f = faceNow(); for (const b of $$("#faceBtns button")) b.setAttribute("aria-pressed", +b.dataset.f === f ? "true" : "false"); }
+function sizePrism() {
+  const st = $("#stage"); const w = st.clientWidth || 400;
+  const r = w / (2 * Math.sqrt(3));
+  st.style.setProperty("--r", r + "px");
+  $$(".face").forEach(f => { f.style.transform = `rotateY(${(+f.dataset.i) * 120}deg) translateZ(${r}px)`; });
+  applySpin(true);
+}
+function go(delta) {
+  const n = S.idx + delta; if (n < 0 || n >= S.order.length) return;
+  S.idx = n; showCard();
+}
+function grade(s) {
+  const ch = current(); const card = cardAt(); if (!card) return;
+  card.s = s; saveChapter(ch);
+  renderRail(); renderHead();
+  const atEnd = S.idx >= S.order.length - 1;
+  if (prefs.filter === "learn" && s === 2) {
+    S.order.splice(S.idx, 1); if (S.idx >= S.order.length) S.idx = Math.max(0, S.order.length - 1);
+    lastCardId = null; buildOrder(true); showCard();
+  } else if (!atEnd) { buildOrder(true); go(1); }
+  else { buildOrder(true); showCard(); toast("End of the chapter. Nice work."); }
+}
+
+/* ================= speech ================= */
+let voice = null, voicesChecked = false;
+function pickVoice() {
+  const syn = window.speechSynthesis; if (!syn) return null;
+  const vs = syn.getVoices(); if (!vs.length) return null;
+  voicesChecked = true;
+  const zh = vs.filter(v => /^zh|cmn/i.test(v.lang));
+  const rank = v => (/zh[-_]CN|cmn/i.test(v.lang) ? 0 : /zh[-_]TW/i.test(v.lang) ? 1 : 2) + (v.localService ? 0 : 0.5);
+  zh.sort((a, b) => rank(a) - rank(b));
+  voice = zh[0] || null;
+  $("#voiceNote").hidden = !!voice;
+  $("#voiceNote").textContent = voice ? "" : "No Mandarin voice found on this device. Add a Chinese (Mandarin) voice in your system's speech or language settings, then reload.";
+  return voice;
+}
+if (window.speechSynthesis) { pickVoice(); window.speechSynthesis.addEventListener ? window.speechSynthesis.addEventListener("voiceschanged", pickVoice) : (window.speechSynthesis.onvoiceschanged = pickVoice); }
+function speak(text) {
+  const syn = window.speechSynthesis;
+  if (!syn || typeof SpeechSynthesisUtterance === "undefined") { toast("This browser can't play speech."); return; }
+  if (!voice) pickVoice();
+  syn.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = voice ? voice.lang : "zh-CN"; if (voice) u.voice = voice;
+  u.rate = prefs.slow ? 0.55 : 0.9;
+  syn.speak(u);
+  if (!voice && voicesChecked) $("#voiceNote").hidden = false;
+}
+
+/* ================= stroke order (Hanzi Writer) ================= */
+const STARTS = [11904,20160,20430,20666,20885,21122,21348,21576,21780,21961,22108,22294,22541,22804,23047,23346,23542,23769,24063,24285,24471,24717,24927,25114,25325,25523,25723,25862,26045,26279,26531,26786,27032,27260,27511,27691,27955,28174,28388,28583,28851,29129,29354,29563,29854,30083,30253,30418,30623,30839,31104,31349,31565,31774,31983,32222,32420,32534,32681,32882,33067,33229,33399,33628,33853,34083,34264,34473,34661,34829,35026,35258,35475,35676,35839,35987,36151,36318,36476,36678,36820,36980,37177,37322,37650,37995,38119,38212,38329,38503,38657,38860,39046,39194,39348,39569,39725,39993,40118,40289,40497,40605,40780];
+const chunkP = {};
+function loadStrokes(ch, ok, bad) {
+  const cp = ch.codePointAt(0); let lo = 0, hi = STARTS.length - 1, i = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (STARTS[m] <= cp) { i = m; lo = m + 1; } else hi = m - 1; }
+  if (i < 0) { bad(); return; }
+  const name = "s" + String(i).padStart(2, "0");
+  const p = chunkP[name] || (chunkP[name] = fetch("data/strokes/" + name + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(e => { delete chunkP[name]; throw e; }));
+  p.then(d => d[ch] ? ok(d[ch]) : bad()).catch(() => bad());
+}
+let writer = null, writerChar = null, quizzing = false;
+const HAN_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
+function renderCharTabs(card) {
+  const tabs = $("#charTabs"); tabs.textContent = "";
+  const chars = [...disp(card)].filter(c => HAN_RE.test(c));
+  chars.forEach((c, i) => {
+    const b = el("button", null, c); b.setAttribute("aria-label", "Stroke order for " + c);
+    b.addEventListener("click", () => { mountWriter(c); markTab(c); writer && writer.animateCharacter(); });
+    tabs.append(b);
+  });
+  tabs.hidden = chars.length < 2;
+  if (chars.length) { mountWriter(chars[0]); markTab(chars[0]); }
+  else { $("#hw").textContent = ""; $("#strokeInfo").textContent = "No characters to draw."; }
+}
+function markTab(c) { for (const b of $$("#charTabs button")) b.setAttribute("aria-pressed", b.textContent === c ? "true" : "false"); }
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function mountWriter(c) {
+  const box = $("#hw"); box.textContent = ""; writerChar = c; quizzing = false;
+  $("#quizBtn").setAttribute("aria-pressed", "false");
+  if (typeof HanziWriter === "undefined") { $("#strokeInfo").textContent = "Stroke animation couldn't load."; return; }
+  const size = Math.floor(box.clientWidth || 0);
+  if (!size) return;
+  boxW = size;
+  $("#strokeInfo").textContent = "Loading strokes…";
+  writer = HanziWriter.create(box, c, {
+    width: size, height: size, padding: Math.round(size * 0.07),
+    showOutline: true, showCharacter: true,
+    strokeColor: tok("--ink"), outlineColor: tok("--line"), highlightColor: tok("--seal"), drawingColor: tok("--seal"),
+    strokeAnimationSpeed: 1, delayBetweenStrokes: 220, strokeHighlightSpeed: 1.5,
+    charDataLoader: loadStrokes,
+    onLoadCharDataSuccess: d => { if (writerChar === c) $("#strokeInfo").textContent = d.strokes.length + (d.strokes.length === 1 ? " stroke" : " strokes"); },
+    onLoadCharDataError: () => { if (writerChar === c) $("#strokeInfo").textContent = "No stroke data for " + c + "."; }
+  });
+}
+function remountForTheme() { if (writerChar && !$("#strokePanel").hidden) mountWriter(writerChar); }
+
+/* ================= word list ================= */
+function renderList() {
+  const ch = current(); const body = $("#listBody"); body.textContent = "";
+  if (!ch.cards.length) {
+    const box = el("div", "empty"); box.append(el("div", "big", "空"), el("div", null, "No words in this chapter yet."));
+    const b = el("button", "btn primary", "Add words"); b.addEventListener("click", () => setView("add")); box.append(b);
+    body.append(box); return;
+  }
+  const wrap = el("div", "table-wrap"); const t = el("table");
+  t.innerHTML = "<thead><tr><th>Word</th><th>Pinyin</th><th>Meaning</th><th>Status</th><th><span class='sr' style='position:absolute;left:-9999px'>Actions</span></th></tr></thead>";
+  const tb = el("tbody");
+  ch.cards.forEach((c, i) => {
+    const tr = el("tr");
+    const tdw = el("td", "w", disp(c));
+    const tdp = el("td", "pc"); const ip = el("input"); ip.value = c.p || ""; ip.id = "p-" + c.id; ip.setAttribute("aria-label", "Pinyin for " + c.w); tdp.append(ip);
+    const tdd = el("td", "dc"); const idf = el("input"); idf.value = prettyDef(c.d || ""); idf.id = "d-" + c.id; idf.setAttribute("aria-label", "Meaning for " + c.w); tdd.append(idf);
+    if (ch.sample) { ip.readOnly = true; idf.readOnly = true; }
+    ip.addEventListener("change", () => { c.p = ip.value.trim(); saveChapter(ch); });
+    idf.addEventListener("change", () => { c.d = idf.value.trim(); saveChapter(ch); });
+    const tds = el("td"); const pill = el("button", "status-pill s" + (c.s || 0), ["New", "Learning", "Known"][c.s || 0]);
+    pill.style.cursor = ch.sample ? "default" : "pointer"; pill.title = "Click to change";
+    pill.addEventListener("click", () => { if (ch.sample) return; c.s = ((c.s || 0) + 1) % 3; saveChapter(ch); renderList(); renderHead(); buildOrder(true); });
+    tds.append(pill);
+    const tda = el("td"); tda.style.whiteSpace = "nowrap";
+    const sp = el("button", "icon-btn"); sp.innerHTML = ICON_SPK; sp.setAttribute("aria-label", "Hear " + c.w); sp.addEventListener("click", () => speak(c.w));
+    tda.append(sp);
+    if (!ch.sample) {
+      const del = el("button", "icon-btn"); del.innerHTML = ICON_TRASH; del.setAttribute("aria-label", "Delete " + c.w);
+      del.addEventListener("click", () => {
+        if (del.dataset.arm) { ch.cards.splice(ch.cards.indexOf(c), 1); saveChapter(ch); renderList(); renderRail(); renderHead(); buildOrder(true); lastCardId = null; return; }
+        del.dataset.arm = "1"; del.innerHTML = ""; del.textContent = "Delete?"; del.style.color = "var(--seal)"; del.style.fontSize = "13px";
+        setTimeout(() => { if (del.isConnected && del.dataset.arm) { delete del.dataset.arm; del.innerHTML = ICON_TRASH; del.style.color = ""; } }, 3000);
+      });
+      tda.append(del);
+    }
+    tr.append(tdw, tdp, tdd, tds, tda); tb.append(tr);
+  });
+  t.append(tb); wrap.append(t); body.append(wrap);
+}
+
+/* ================= dictionary ================= */
+let DICT = null, dictP = null;
+function loadDict() {
+  if (dictP) return dictP;
+  $("#dictStatus").textContent = "Loading the dictionary (about 9 MB the first time)…";
+  dictP = fetch("data/dict.tsv").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); }).then(txt => {
+    const bySimp = new Map(), byTrad = new Map();
+    const push = (m, k, e) => { const a = m.get(k); if (a) a.push(e); else m.set(k, [e]); };
+    for (const line of txt.split("\n")) {
+      const a = line.split("\t"); if (a.length < 4) continue;
+      const e = { w: a[0], t: a[1] || "", n: a[2], d: a[3], f: +a[4] || 0 };
+      push(bySimp, e.w, e); if (e.t) push(byTrad, e.t, e);
+    }
+    DICT = { bySimp, byTrad, pin: null };
+    $("#dictStatus").textContent = "Dictionary ready · CC-CEDICT, " + bySimp.size.toLocaleString() + " words.";
+    return DICT;
+  }).catch(e => { dictP = null; $("#dictStatus").textContent = "The dictionary didn't load. Check your connection and press Look up again."; throw e; });
+  return dictP;
+}
+function lookup(w) { return (DICT.bySimp.get(w) || DICT.byTrad.get(w) || []).slice(); }
+function pinIndex() {
+  if (DICT.pin) return DICT.pin;
+  const m = new Map();
+  for (const list of DICT.bySimp.values()) for (const e of list) { const k = toneless(e.n); if (!k) continue; const a = m.get(k); if (a) a.push(e); else m.set(k, [e]); }
+  DICT.pin = m; return m;
+}
+function segment(run) {
+  const out = []; let i = 0; const chars = [...run];
+  while (i < chars.length) {
+    let L = Math.min(8, chars.length - i), found = null;
+    for (; L > 1; L--) { const w = chars.slice(i, i + L).join(""); if (DICT.bySimp.has(w) || DICT.byTrad.has(w)) { found = w; break; } }
+    if (!found) { found = chars[i]; L = 1; }
+    out.push(found); i += L;
+  }
+  return out;
+}
+function readingsFor(word) {
+  const es = lookup(word); const seen = new Set(); const out = [];
+  for (const e of es) { const p = numToMarks(e.n); const key = p.toLowerCase() + "|" + e.d; if (seen.has(key)) continue; seen.add(key); out.push({ p, d: e.d, w: e.w, t: e.t, f: e.f }); }
+  // merge same pinyin entries' definitions
+  const merged = [];
+  for (const r of out) { const m = merged.find(x => x.p === r.p); if (m) { if (m.d.length < 140) m.d += "; " + r.d; } else merged.push(Object.assign({}, r)); }
+  return merged;
+}
+function composedReading(word) {
+  const parts = segment(word); const ps = [], ds = [];
+  let t = "";
+  for (const p of parts) { const r = readingsFor(p)[0]; ps.push(r ? r.p : "?"); ds.push(r ? splitDef(r.d).senses[0] || "" : ""); t += r && r.t ? r.t : p; }
+  return { p: ps.join(" "), d: ds.filter(Boolean).join(" + "), w: word, t: t !== word ? t : "", composed: true };
+}
+const SEP = /^[\s\-–—:=,|;：，、。.]+/;
+function makeItem(rawWord, rest) {
+  let readings = readingsFor(rawWord);
+  let simp = readings[0] ? readings[0].w : rawWord;
+  let trad = readings[0] ? readings[0].t : "";
+  let composed = false;
+  if (!readings.length) { const c = composedReading(rawWord); readings = [c]; simp = rawWord; trad = c.t; composed = true; }
+  let sel = 0, custom = "", note = "";
+  if (rest) {
+    const toks = rest.trim().split(/\s+/); const targets = readings.map(r => toneless(r.p));
+    let acc = "", used = 0, userPin = "";
+    for (let k = 0; k < toks.length; k++) {
+      acc += toneless(toks[k]);
+      if (!acc) continue;
+      if (targets.includes(acc)) { used = k + 1; userPin = toks.slice(0, k + 1).join(" "); break; }
+      if (!targets.some(t => t.startsWith(acc))) break;
+    }
+    if (used) {
+      const ut = tonesIn(userPin);
+      if (ut.length) {
+        const match = readings.findIndex(r => { const rt = r.p.split(/\s+/).map(toneOf).filter(x => x !== 5); return toneless(r.p) === toneless(userPin) && rt.join() === ut.join(); });
+        if (match >= 0) sel = match;
+      } else { const m = readings.findIndex(r => toneless(r.p) === toneless(userPin)); if (m >= 0) sel = m; }
+      custom = toks.slice(used).join(" ").replace(SEP, "").trim();
+    } else {
+      custom = rest.replace(SEP, "").trim();
+      // A line like "了 le" with an unknown romanisation: treat as definition anyway
+    }
+  }
+  if (composed) note = "Not in the dictionary as one word, built from its parts";
+  return { key: uid(), w: simp, t: trad, readings, sel, custom, note, pinOverride: "" };
+}
+function parseInput(text) {
+  const items = [], queries = [];
+  for (const raw of text.split(/\n/)) {
+    const line = raw.trim(); if (!line) continue;
+    const hanIdx = [...line].reduce((acc, ch, i) => HAN_RE.test(ch) ? i : acc, -1);
+    if (hanIdx < 0) { queries.push(line); continue; }
+    const arr = [...line];
+    const hanPart = arr.slice(0, hanIdx + 1).join(""); const rest = arr.slice(hanIdx + 1).join("").trim();
+    if (rest && /[A-Za-z\u00C0-\u024F]/.test(rest)) {
+      const word = [...hanPart].filter(c => HAN_RE.test(c)).join("");
+      if (word) items.push(makeItem(word, rest));
+    } else {
+      for (const tokRaw of hanPart.split(/[\s,，、;；。.!！?？\/|·・]+/)) {
+        const tk = [...tokRaw].filter(c => HAN_RE.test(c)).join(""); if (!tk) continue;
+        if (lookup(tk).length) items.push(makeItem(tk, ""));
+        else for (const w of segment(tk)) items.push(makeItem(w, ""));
+      }
+    }
+  }
+  return { items, queries };
+}
+function searchPinyin(q) {
+  const key = toneless(q); if (!key) return [];
+  const qt = tonesIn(q);
+  const list = (pinIndex().get(key) || []).slice();
+  const seen = new Set(); const out = [];
+  list.sort((a, b) => {
+    const ta = a.n.split(" ").map(s => +s.slice(-1) || 5).filter(x => x !== 5).join(), tb = b.n.split(" ").map(s => +s.slice(-1) || 5).filter(x => x !== 5).join();
+    const ma = qt.length && ta === qt.join() ? 1 : 0, mb = qt.length && tb === qt.join() ? 1 : 0;
+    if (ma !== mb) return mb - ma;
+    const ua = /^[A-Z]/.test(a.n) ? 1 : 0, ub = /^[A-Z]/.test(b.n) ? 1 : 0;
+    if (ua !== ub) return ua - ub;
+    return b.f - a.f;
+  });
+  for (const e of list) { const k = e.w + "|" + e.n.toLowerCase(); if (seen.has(k)) continue; seen.add(k); out.push(e); if (out.length >= 24) break; }
+  return out;
+}
+async function doLookup() {
+  const text = $("#addText").value;
+  if (!text.trim()) { toast("Type some characters or pinyin first."); return; }
+  try { await loadDict(); } catch (e) { return; }
+  const { items, queries } = parseInput(text);
+  S.pending = S.pending.concat(items);
+  S.picks = queries.map(q => ({ q, res: searchPinyin(q) }));
+  $("#addText").value = "";
+  renderPending();
+}
+function itemFinal(it) {
+  const r = it.readings[it.sel] || it.readings[0] || { p: "", d: "" };
+  return { w: it.w, t: it.t || "", p: it.pinOverride || r.p, d: it.custom || r.d };
+}
+function renderPending() {
+  const box = $("#pending"); box.textContent = "";
+  const ch = current();
+  if (ch.sample) {
+    const e = el("div", "empty"); e.append(el("div", "big", "课"), el("div", null, "Make a chapter first, then add words to it."));
+    const f = el("form", "inline-confirm"); const inp = el("input", "field"); inp.id = "addChapName"; inp.placeholder = "Chapter name, e.g. Lesson 1"; inp.setAttribute("aria-label", "Chapter name");
+    const b = el("button", "btn primary", "Create chapter"); b.type = "submit"; f.append(inp, b);
+    f.addEventListener("submit", ev => { ev.preventDefault(); createChapter(inp.value.trim() || "Lesson 1", "add"); });
+    e.append(f); box.append(e); return;
+  }
+  for (const pk of S.picks) {
+    const card = el("div", "pick");
+    const head = el("div", "lbl"); head.textContent = pk.res.length ? `Pick a word for “${pk.q}”` : `No words found for “${pk.q}”. Try tone numbers like ni3 hao3, or type the characters.`;
+    const x = el("button", "icon-btn"); x.innerHTML = ICON_X; x.setAttribute("aria-label", "Dismiss"); x.addEventListener("click", () => { S.picks.splice(S.picks.indexOf(pk), 1); renderPending(); });
+    const top = el("div"); top.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:8px"; top.append(head, x);
+    card.append(top);
+    if (pk.res.length) {
+      const chips = el("div", "chips");
+      for (const e of pk.res) {
+        const c = el("button", "chip"); const p = numToMarks(e.n);
+        const pin = el("span", "cp"); for (const s of p.split(" ")) { pin.append(el("span", "tone" + toneOf(s), s + " ")); }
+        c.append(el("span", "cw", isTrad() && e.t ? e.t : e.w), pin, el("span", "cd", splitDef(prettyDef(e.d)).senses[0] || ""));
+        c.title = prettyDef(e.d);
+        c.addEventListener("click", () => {
+          const it = makeItem(e.w, ""); const i = it.readings.findIndex(r => r.p === p); if (i >= 0) it.sel = i;
+          S.pending.push(it); S.picks.splice(S.picks.indexOf(pk), 1); renderPending();
+        });
+        chips.append(c);
+      }
+      card.append(chips);
+    }
+    box.append(card);
+  }
+  if (S.pending.length) {
+    const existing = new Set(ch.cards.map(c => c.w));
+    const list = el("div", "pending");
+    S.pending.forEach(it => {
+      const row = el("div", "prow" + (existing.has(it.w) ? " dup" : ""));
+      row.append(el("div", "pw", disp(it)));
+      const fields = el("div", "pfields");
+      if (it.readings.length > 1) {
+        const s = el("select", "field"); s.id = "sel-" + it.key; s.setAttribute("aria-label", "Reading for " + it.w);
+        it.readings.forEach((r, i) => { const o = el("option", null, r.p + " · " + (splitDef(prettyDef(r.d)).senses[0] || "").slice(0, 28)); o.value = i; s.append(o); });
+        s.value = it.sel;
+        s.addEventListener("change", () => { it.sel = +s.value; renderPending(); });
+        fields.append(s);
+      } else {
+        const pi = el("input", "field pin-in"); pi.id = "pin-" + it.key; pi.value = itemFinal(it).p; pi.setAttribute("aria-label", "Pinyin for " + it.w);
+        pi.addEventListener("change", () => { it.pinOverride = pi.value.trim(); });
+        fields.append(pi);
+      }
+      const di = el("input", "field def-in"); di.id = "def-" + it.key; di.value = prettyDef(itemFinal(it).d); di.setAttribute("aria-label", "Meaning for " + it.w);
+      di.addEventListener("change", () => { it.custom = di.value.trim(); });
+      fields.append(di);
+      row.append(fields);
+      const rm = el("button", "icon-btn"); rm.innerHTML = ICON_X; rm.setAttribute("aria-label", "Remove " + it.w); rm.addEventListener("click", () => { S.pending.splice(S.pending.indexOf(it), 1); renderPending(); });
+      rm.style.gridRow = "span 2"; row.append(rm);
+      const notes = [];
+      if (existing.has(it.w)) notes.push("Already in this chapter, will be skipped");
+      if (it.note) notes.push(it.note);
+      if (it.custom) notes.push("Using your meaning");
+      row.append(el("div", "pnote", notes.join(" · ")));
+      list.append(row);
+    });
+    const fresh = S.pending.filter(it => !existing.has(it.w));
+    const foot = el("div", "add-foot");
+    foot.append(el("span", "lbl", `${fresh.length} new card${fresh.length === 1 ? "" : "s"} for “${ch.name}”`));
+    const btns = el("div"); btns.style.cssText = "display:flex;gap:8px";
+    const clr = el("button", "btn ghost", "Discard"); clr.addEventListener("click", () => { S.pending = []; renderPending(); });
+    const add = el("button", "btn primary", fresh.length ? `Add ${fresh.length} card${fresh.length === 1 ? "" : "s"}` : "Nothing new to add");
+    add.disabled = !fresh.length;
+    add.addEventListener("click", () => {
+      // pick up any field still focused
+      if (document.activeElement && document.activeElement.dispatchEvent) document.activeElement.dispatchEvent(new Event("change"));
+      const seen = new Set(existing);
+      for (const it of S.pending) { if (seen.has(it.w)) continue; seen.add(it.w); const f = itemFinal(it); ch.cards.push({ id: uid(), w: f.w, t: f.t, p: f.p, d: f.d, s: 0 }); }
+      const n = seen.size - existing.size;
+      S.pending = []; saveChapter(ch); lastCardId = null;
+      renderRail(); renderHead(); buildOrder(true); renderPending();
+      toast(`Added ${n} card${n === 1 ? "" : "s"} to ${ch.name}`);
+    });
+    btns.append(clr, add); foot.append(btns);
+    box.append(list, foot);
+  } else if (!S.picks.length) {
+    const e = el("div", "empty"); e.append(el("div", "big", "词"), el("div", null, `New words show up here for you to check before they go into “${ch.name}”.`));
+    box.append(e);
+  }
+}
+function createChapter(name, view) {
+  const id = "c" + uid();
+  const ch = { id, name: name.slice(0, 60), created: Date.now(), cards: [] };
+  S.chapters[id] = ch; saveChapter(ch);
+  prefs.cur = id; prefs.view = view || "add"; savePrefs();
+  S.idx = 0; S.confirm = null; renderAll();
+  toast(`Created “${ch.name}”`);
+  if (prefs.view === "add") setTimeout(() => $("#addText").focus(), 50);
+}
+
+/* ================= photo → characters (Tesseract.js OCR) ================= */
+// Lazy-loaded on first use so normal studying stays light. There's no server and no AI
+// service behind this: the recognizer and its language data load from a CDN and run
+// entirely in the browser, so the photo never leaves the device.
+const OCR_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let ocrScriptP = null, ocrWorker = null, ocrWorkerLang = null, ocrBusy = false;
+function setOcrStatus(msg) { const e = $("#ocrStatus"); e.hidden = !msg; e.textContent = msg || ""; }
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (ocrScriptP) return ocrScriptP;
+  ocrScriptP = new Promise((res, rej) => {
+    const s = el("script"); s.src = OCR_SRC;
+    s.onload = () => res(window.Tesseract);
+    s.onerror = () => { ocrScriptP = null; rej(new Error("load failed")); };
+    document.head.appendChild(s);
+  });
+  return ocrScriptP;
+}
+// One worker, kept around and reused; rebuilt only when the character set changes.
+async function ocrWorkerFor(lang) {
+  if (ocrWorker && ocrWorkerLang === lang) return ocrWorker;
+  const T = await loadTesseract();
+  if (ocrWorker) { try { await ocrWorker.terminate(); } catch (e) {} ocrWorker = null; ocrWorkerLang = null; }
+  ocrWorker = await T.createWorker(lang, 1, {
+    logger: m => { if (m.status === "recognizing text") setOcrStatus("Reading the image… " + Math.round((m.progress || 0) * 100) + "%"); }
+  });
+  ocrWorkerLang = lang;
+  return ocrWorker;
+}
+async function runOCR(file) {
+  if (ocrBusy) return;
+  if (!file || !/^image\//.test(file.type || "")) { toast("Choose an image file."); return; }
+  ocrBusy = true; $("#photoBtn").disabled = true;
+  const lang = isTrad() ? "chi_tra" : "chi_sim";
+  setOcrStatus("Loading the character reader (the first photo downloads a few MB)…");
+  try {
+    const worker = await ocrWorkerFor(lang);
+    setOcrStatus("Reading the image…");
+    const { data } = await worker.recognize(file);
+    // Keep only Han characters, one source line per line, dropping stray punctuation and latin noise.
+    const lines = ((data && data.text) || "").split(/\n+/)
+      .map(line => [...line].filter(c => HAN_RE.test(c)).join(""))
+      .filter(Boolean);
+    const text = lines.join("\n");
+    if (!text) { setOcrStatus("No Chinese characters found in that image. Try a clearer, straighter, well-lit photo."); return; }
+    const box = $("#addText");
+    box.value = box.value.trim() ? box.value.replace(/\s+$/, "") + "\n" + text : text;
+    const n = [...text].filter(c => HAN_RE.test(c)).length;
+    setOcrStatus("Read " + n + " character" + (n === 1 ? "" : "s") + ". Check the text above and fix anything the camera got wrong, then press Look up.");
+    box.focus();
+  } catch (e) {
+    setOcrStatus("Couldn't read that image. The reader may be offline or blocked — you can still type the characters in.");
+  } finally {
+    ocrBusy = false; $("#photoBtn").disabled = false;
+  }
+}
+
+/* ================= toast ================= */
+let toastT = 0;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
+
+/* ================= events ================= */
+$("#newChapForm").addEventListener("submit", e => { e.preventDefault(); const v = $("#newChapName").value.trim(); if (!v) { $("#newChapName").focus(); return; } $("#newChapName").value = ""; createChapter(v, "add"); });
+$("#bannerNew").addEventListener("click", () => { $("#newChapName").focus(); $("#newChapName").scrollIntoView({ block: "center" }); });
+for (const t of $$(".tab")) t.addEventListener("click", () => setView(t.dataset.view));
+$("#prism").addEventListener("click", turn);
+$("#prism").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); turn(); } });
+for (const b of $$("#faceBtns button")) b.addEventListener("click", () => setFace(+b.dataset.f));
+for (const b of $$("#segFront button")) b.addEventListener("click", () => { prefs.front = +b.dataset.f; savePrefs(); buildOrder(true); setFace(prefs.front, false); });
+for (const b of $$("#segFilter button")) b.addEventListener("click", () => { prefs.filter = b.dataset.v; savePrefs(); S.idx = 0; lastCardId = null; buildOrder(); showCard(); });
+$("#shuffleBtn").addEventListener("click", () => { prefs.shuffle = !prefs.shuffle; savePrefs(); S.idx = 0; lastCardId = null; buildOrder(); showCard(); });
+$("#slowBtn").addEventListener("click", () => { prefs.slow = !prefs.slow; savePrefs(); $("#slowBtn").setAttribute("aria-pressed", prefs.slow ? "true" : "false"); const c = cardAt(); if (c) speak(c.w); });
+$("#prevBtn").addEventListener("click", () => go(-1));
+$("#nextBtn").addEventListener("click", () => go(1));
+$("#speakBtn").addEventListener("click", () => { const c = cardAt(); if (c) speak(c.w); });
+$("#charSpeak").addEventListener("click", () => { if (writerChar) speak(writerChar); });
+$("#learnBtn").addEventListener("click", () => grade(1));
+$("#knowBtn").addEventListener("click", () => grade(2));
+$("#playBtn").addEventListener("click", () => { if (!writer) return; if (quizzing) { mountWriter(writerChar); } setTimeout(() => writer && writer.animateCharacter(), quizzing ? 60 : 0); quizzing = false; $("#quizBtn").setAttribute("aria-pressed", "false"); });
+$("#quizBtn").addEventListener("click", () => {
+  if (!writer) return;
+  if (quizzing) { mountWriter(writerChar); return; }
+  quizzing = true; $("#quizBtn").setAttribute("aria-pressed", "true");
+  $("#strokeInfo").textContent = "Trace each stroke in order inside the grid.";
+  writer.quiz({
+    showHintAfterMisses: 2, leniency: 1.1,
+    onMistake: s => { $("#strokeInfo").textContent = `Stroke ${s.strokeNum + 1}: try again`; },
+    onCorrectStroke: s => { $("#strokeInfo").textContent = `Stroke ${s.strokeNum + 1} of ${s.strokeNum + 1 + s.strokesRemaining}`; },
+    onComplete: s => { quizzing = false; $("#quizBtn").setAttribute("aria-pressed", "false"); $("#strokeInfo").textContent = s.totalMistakes ? `Done with ${s.totalMistakes} mistake${s.totalMistakes === 1 ? "" : "s"}. Press Practice to go again.` : "Perfect, no mistakes."; }
+  });
+});
+$("#lookupBtn").addEventListener("click", doLookup);
+$("#addText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doLookup(); } });
+$("#clearBtn").addEventListener("click", () => { $("#addText").value = ""; setOcrStatus(""); $("#addText").focus(); });
+$("#photoBtn").addEventListener("click", () => $("#photoInput").click());
+$("#photoInput").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) runOCR(f); });
+document.addEventListener("keydown", e => {
+  if (prefs.view !== "study" || e.metaKey || e.ctrlKey || e.altKey || !$("#scriptModal").hidden) return;
+  const tg = e.target; if (tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA" || tg.tagName === "SELECT" || tg.isContentEditable)) return;
+  if (!cardAt()) return;
+  if (e.key === " ") { if (tg && tg.tagName === "BUTTON" && tg.id !== "prism") return; e.preventDefault(); turn(); }
+  else if (e.key === "ArrowRight") go(1);
+  else if (e.key === "ArrowLeft") go(-1);
+  else if (e.key === "s" || e.key === "S") { const c = cardAt(); if (c) speak(c.w); }
+  else if (e.key === "1" || e.key === "2" || e.key === "3") setFace(+e.key - 1);
+});
+new ResizeObserver(() => sizePrism()).observe($("#stage"));
+let boxW = 0;
+new ResizeObserver(entries => { const w = Math.round(entries[0].contentRect.width); if (w && Math.abs(w - boxW) > 4) { boxW = w; if (writerChar) mountWriter(writerChar); } }).observe($("#hw"));
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", remountForTheme); } catch (e) {}
+new MutationObserver(remountForTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* ================= character set ================= */
+const PH = {
+  simp: "你好\n谢谢 老师 学生\n朋友 péngyou friend\nzaijian\nhe1 cha2",
+  trad: "你好\n謝謝 老師 學生\n朋友 péngyou friend\nzaijian\nhe1 cha2"
+};
+function applyScriptUI() {
+  const s = prefs.script || "simp";
+  document.documentElement.classList.toggle("trad", s === "trad");
+  for (const b of $$("#segScript button")) b.setAttribute("aria-pressed", b.dataset.s === s ? "true" : "false");
+  $("#addText").placeholder = PH[s];
+}
+function setScript(s, remember) {
+  const changed = prefs.script !== s;
+  prefs.script = s; savePrefs();
+  $("#scriptModal").hidden = true;
+  applyScriptUI();
+  if (remember !== false && S.cloud) S.col.doc("settings").set({ script: s }).catch(() => {});
+  if (changed) { lastCardId = null; renderAll(true); }
+}
+for (const b of $$("#segScript button")) b.addEventListener("click", () => { setScript(b.dataset.s); toast(b.dataset.s === "trad" ? "Showing traditional characters" : "Showing simplified characters"); });
+for (const b of $$("#scriptModal button")) b.addEventListener("click", () => setScript(b.dataset.s));
+
+/* ================= boot ================= */
+applyScriptUI();
+if (!prefs.script) { $("#scriptModal").hidden = false; setTimeout(() => { const b = $("#scriptModal button"); if (b) b.focus(); }, 50); }
+renderAll();
+sizePrism();
+connect();
+})();
+</script>
+
+</body>
+</html>
