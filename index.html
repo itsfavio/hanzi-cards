@@ -1329,49 +1329,41 @@ function createChapter(name, view) {
   if (prefs.view === "add") setTimeout(() => $("#addText").focus(), 50);
 }
 
-/* ================= photo → characters (Tesseract.js OCR) ================= */
-// Lazy-loaded on first use so normal studying stays light. There's no server and no AI
-// service behind this: the recognizer and its language data load from a CDN and run
-// entirely in the browser, so the photo never leaves the device.
-const OCR_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
-let ocrScriptP = null, ocrWorker = null, ocrWorkerLang = null, ocrBusy = false;
-let ocrReport = () => {}; // progress callback of the photo currently being read
-function loadTesseract() {
-  if (window.Tesseract) return Promise.resolve(window.Tesseract);
-  if (ocrScriptP) return ocrScriptP;
-  ocrScriptP = new Promise((res, rej) => {
-    const s = el("script"); s.src = OCR_SRC;
-    s.onload = () => res(window.Tesseract);
-    s.onerror = () => { ocrScriptP = null; rej(new Error("load failed")); };
-    document.head.appendChild(s);
-  });
-  return ocrScriptP;
-}
-// One worker, kept around and reused; rebuilt only when the character set changes.
-async function ocrWorkerFor(lang) {
-  if (ocrWorker && ocrWorkerLang === lang) return ocrWorker;
-  const T = await loadTesseract();
-  if (ocrWorker) { try { await ocrWorker.terminate(); } catch (e) {} ocrWorker = null; ocrWorkerLang = null; }
-  ocrWorker = await T.createWorker(lang, 1, {
-    logger: m => { if (m.status === "recognizing text") ocrReport("Reading the image… " + Math.round((m.progress || 0) * 100) + "%"); }
-  });
-  ocrWorkerLang = lang;
-  return ocrWorker;
+/* ================= photo → characters (PaddleOCR, on-device) ================= */
+// PP-OCRv6 runs in a Web Worker (vendor/ocr/ocr-worker.js, built by scripts/build_ocr.sh) so the
+// page stays responsive. It loads on first use (about 55 MB, then cached by the browser), runs
+// entirely on the device, and reads simplified and traditional alike. No server or AI service.
+const OCR_WORKER_URL = "vendor/ocr/ocr-worker.js";
+let ocrWorker = null, ocrLoaded = false, ocrSeq = 0, ocrBusy = false;
+const ocrJobs = new Map(); // id → { resolve, reject, report }
+function getOcrWorker() {
+  if (ocrWorker) return ocrWorker;
+  const w = ocrWorker = new Worker(OCR_WORKER_URL, { type: "module" });
+  w.onmessage = ({ data }) => {
+    const job = ocrJobs.get(data.id); if (!job) return;
+    if (data.status === "reading") { ocrLoaded = true; job.report("Reading the image…"); return; }
+    ocrJobs.delete(data.id);
+    if (data.error) job.reject(new Error(data.error)); else job.resolve(data.lines);
+  };
+  // The worker script itself failed to load (offline, old browser): fail pending jobs and allow a retry.
+  w.onerror = e => {
+    e.preventDefault();
+    for (const job of ocrJobs.values()) job.reject(new Error("OCR worker failed to start"));
+    ocrJobs.clear(); w.terminate(); if (ocrWorker === w) ocrWorker = null;
+  };
+  return w;
 }
 // Reads Chinese off an image. Returns one string per source line, Han characters only.
 // Knows nothing about the page: each screen decides where the text goes (see wirePhoto).
-async function readHanFromImage(file, report) {
-  ocrReport = report;
-  try {
-    report("Loading the character reader (the first photo downloads a few MB)…");
-    const worker = await ocrWorkerFor(isTrad() ? "chi_tra" : "chi_sim");
-    report("Reading the image…");
-    const { data } = await worker.recognize(file);
-    // Drop stray punctuation and latin noise.
-    return ((data && data.text) || "").split(/\n+/)
-      .map(line => [...line].filter(c => HAN_RE.test(c)).join(""))
-      .filter(Boolean);
-  } finally { ocrReport = () => {}; }
+async function readHanFromImage(blob, report) {
+  report(ocrLoaded ? "Reading the image…" : "Loading the character reader (about 55 MB the first time, then it's saved)…");
+  const image = await createImageBitmap(blob);
+  const lines = await new Promise((resolve, reject) => {
+    const id = ++ocrSeq; ocrJobs.set(id, { resolve, reject, report });
+    getOcrWorker().postMessage({ id, image }, [image]);
+  });
+  // Drop stray punctuation and latin noise.
+  return lines.map(line => [...line].filter(c => HAN_RE.test(c)).join("")).filter(Boolean);
 }
 // Hooks one screen's "From a photo" file picker to its status line and returns readImage, which every
 // image for that screen goes through (picked or pasted; see the paste listener).
@@ -1388,6 +1380,7 @@ function wirePhoto({ pickBtn, input, status, onLines }) {
       if (!lines.length) { report("No Chinese characters found in that image. Try a clearer, straighter, well-lit photo."); return; }
       onLines(lines, report);
     } catch (err) {
+      console.error("OCR failed:", err);
       report("Couldn't read that image. The reader may be offline or blocked — you can still type the characters in.");
     } finally {
       ocrBusy = false; photoBtns.forEach(b => b.disabled = false);
