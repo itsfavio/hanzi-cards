@@ -18,6 +18,7 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
 - **Add from a photo.** Snap or upload a picture of a vocab list or textbook page and the app reads the characters off it — right in your browser — and drops them in the box, ready to look up.
 - **Paste an image.** Copy a screenshot or picture of characters and paste it with Ctrl/⌘ + V (or long-press → Paste on a phone) on the Add words tab or Quick search. It's read the same way as a photo.
 - **Quick search.** Look up any character, word or pinyin to see its readings, meanings and a character-by-character breakdown, without adding it to a chapter.
+- **Quick write.** Type a character, word or pinyin to watch its stroke order and practice tracing it, with its pinyin and meaning, without adding it to a chapter.
 - **Self-grading.** Mark cards "I know it" or "Still learning," then filter to just the ones you haven't learned yet.
 
 ## How to use it

@@ -79,6 +79,7 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .new-chap { display: flex; gap: 6px; }
 .new-chap input { flex: 1; min-width: 0; }
 .rail-search { width: 100%; justify-content: center; }
+.rail-tools { display: flex; flex-direction: column; gap: 6px; }
 .sync { margin-top: auto; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
 .dot.on { background: var(--ok); }
@@ -222,6 +223,21 @@ td.pc { width: 22%; } td.dc { width: 48%; }
   .qs-actions { margin-left: auto; }
 }
 
+/* ---------- quick write ---------- */
+.qw-body { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.qw-brief { display: flex; flex-direction: column; gap: 6px; }
+.qw-word { font-family: var(--f-han); font-size: 40px; font-weight: 700; line-height: 1.1; }
+.qw-line { font-size: 16px; display: flex; flex-wrap: wrap; gap: 0 .5em; align-items: baseline; }
+.qw-line .qs-pin { font-size: 18px; }
+.qw-def { color: var(--muted); overflow-wrap: anywhere; }
+.qw-alts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+@media (max-width: 760px) {
+  .qw-body { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .qw-body .strokes { max-width: 420px; width: 100%; margin: 0 auto; }
+  .qw-brief { order: -1; } /* reading and meaning above the grid, so no scrolling to see them */
+  .qw-word { font-size: 32px; }
+}
+
 /* ---------- add words ---------- */
 .add-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
 .add-in { display: flex; flex-direction: column; gap: 10px; }
@@ -320,7 +336,10 @@ td.pc { width: 22%; } td.dc { width: 48%; }
       <input class="field" id="newChapName" placeholder="New chapter, e.g. 第三课" aria-label="New chapter name" maxlength="60">
       <button class="btn" type="submit" aria-label="Create chapter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg></button>
     </form>
+    <div class="rail-tools">
     <button class="btn rail-search" id="qsOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.3"/><path d="m10.2 10.2 3.3 3.3"/></svg>Quick search</button>
+    <button class="btn rail-search" id="qwOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Quick write</button>
+    </div>
     <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Saved in this browser</span></div>
   </nav>
 
@@ -413,26 +432,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
             <div class="keys"><kbd>Space</kbd> turn · <kbd>←</kbd> <kbd>→</kbd> cards · <kbd>S</kbd> speak · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sides</div>
           </div>
 
-          <aside class="strokes" id="strokePanel">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
-              <h2>Stroke order</h2><span class="eyebrow">笔顺</span>
-            </div>
-            <div class="char-tabs" id="charTabs"></div>
-            <div class="grid-box">
-              <svg class="rice" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                <g stroke="var(--grid)" stroke-width=".6" stroke-dasharray="2.2 2" fill="none">
-                  <path d="M50 0V100M0 50H100M0 0 100 100M100 0 0 100"/>
-                </g>
-              </svg>
-              <div class="hw" id="hw"></div>
-            </div>
-            <div class="stroke-info" id="strokeInfo"></div>
-            <div class="stroke-btns">
-              <button class="btn primary" id="playBtn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4L13 8z"/></svg>Play</button>
-              <button class="btn" id="quizBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Practice</button>
-              <button class="btn ghost" id="charSpeak" aria-label="Hear this character"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg></button>
-            </div>
-          </aside>
+          <aside class="strokes" id="strokePanel"></aside>
         </div>
       </section>
 
@@ -488,9 +488,51 @@ td.pc { width: 22%; } td.dc { width: 48%; }
         <div class="hint" data-dict-status></div>
         <div class="qs-results" id="qsResults" aria-live="polite"></div>
       </section>
+
+      <!-- QUICK WRITE: stroke order for any word, without adding it to a chapter -->
+      <section id="v-write" class="qs" hidden>
+        <div class="head">
+          <div>
+            <div class="eyebrow">Quick write · 写字</div>
+            <h1>How to write it</h1>
+            <div class="head-meta">Nothing here is added to your chapters.</div>
+          </div>
+        </div>
+        <form class="qs-form" id="qwForm">
+          <input class="field han" id="qwInput" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="好 · 胳膊 · hao3 · nihao" aria-label="Characters or pinyin to write">
+          <button class="btn primary" type="submit">Show</button>
+        </form>
+        <div class="hint" data-dict-status></div>
+        <div id="qwEmpty"></div>
+        <div class="qw-body" id="qwBody" hidden>
+          <aside class="strokes" id="qwPanel"></aside>
+          <div class="qw-brief" id="qwBrief" aria-live="polite"></div>
+        </div>
+      </section>
     </div>
   </main>
 </div>
+<!-- Stroke-order panel, cloned by createStrokePanel() into the Study tab and Quick write. -->
+<template id="strokePanelTpl">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+    <h2>Stroke order</h2><span class="eyebrow">笔顺</span>
+  </div>
+  <div class="char-tabs" data-tabs></div>
+  <div class="grid-box">
+    <svg class="rice" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <g stroke="var(--grid)" stroke-width=".6" stroke-dasharray="2.2 2" fill="none">
+        <path d="M50 0V100M0 50H100M0 0 100 100M100 0 0 100"/>
+      </g>
+    </svg>
+    <div class="hw" data-hw></div>
+  </div>
+  <div class="stroke-info" data-info></div>
+  <div class="stroke-btns">
+    <button class="btn primary" data-play type="button"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.8v10.4L13 8z"/></svg>Play</button>
+    <button class="btn" data-quiz type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Practice</button>
+    <button class="btn ghost" data-speak type="button" aria-label="Hear this character"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg></button>
+  </div>
+</template>
 <div class="modal-back" id="scriptModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="smTitle">
     <div class="eyebrow">Before you start</div>
@@ -692,7 +734,7 @@ function renderRail() {
   for (const ch of items.concat(items.length ? [] : [SAMPLE])) {
     const li = el("li"); const b = el("button", "chap" + (ch.sample ? " example" : ""));
     b.dataset.id = ch.id;
-    b.setAttribute("aria-current", ch.id === cur.id && prefs.view !== "search" ? "true" : "false");
+    b.setAttribute("aria-current", ch.id === cur.id && !isToolView(prefs.view) ? "true" : "false");
     b.append(el("span", "nm", ch.name), el("span", "n", String(ch.cards.length)));
     b.addEventListener("click", () => selectChapter(ch.id));
     li.append(b); ul.append(li);
@@ -740,25 +782,29 @@ function renderConfirm() {
   }
   box.append(row);
 }
-// Views: "study" | "list" | "add" belong to the current chapter; "search" is chapter-independent
-// and hides the chapter header and tabs.
+// Views: "study" | "list" | "add" belong to the current chapter. The tools ("search", "write") are
+// chapter-independent, hide the chapter header and tabs, and have their own sidebar button.
+const TOOL_VIEWS = { search: "#qsOpen", write: "#qwOpen" };
+const isToolView = v => v in TOOL_VIEWS;
 function setView(v) {
-  if (v !== "search") S.lastChapterView = v;
+  if (!isToolView(v)) S.lastChapterView = v;
   prefs.view = v; savePrefs();
-  const searching = v === "search";
+  const tool = isToolView(v);
   for (const t of $$(".tab")) t.setAttribute("aria-selected", t.dataset.view === v ? "true" : "false");
-  $("#chapterChrome").hidden = searching;
-  $("#qsOpen").setAttribute("aria-pressed", searching ? "true" : "false");
-  for (const b of $$("#chapList .chap")) b.setAttribute("aria-current", !searching && b.dataset.id === current().id ? "true" : "false");
-  $("#v-study").hidden = v !== "study"; $("#v-list").hidden = v !== "list"; $("#v-add").hidden = v !== "add"; $("#v-search").hidden = !searching;
+  $("#chapterChrome").hidden = tool;
+  for (const k in TOOL_VIEWS) $(TOOL_VIEWS[k]).setAttribute("aria-pressed", v === k ? "true" : "false");
+  for (const b of $$("#chapList .chap")) b.setAttribute("aria-current", !tool && b.dataset.id === current().id ? "true" : "false");
+  $("#v-study").hidden = v !== "study"; $("#v-list").hidden = v !== "list"; $("#v-add").hidden = v !== "add";
+  $("#v-search").hidden = v !== "search"; $("#v-write").hidden = v !== "write";
   if (v === "study") { showCard(); }
   if (v === "list") renderList();
   if (v === "add") { renderPending(); if (!current().sample) loadDict().catch(() => {}); }
-  if (searching) { renderQuickSearch(); loadDict().catch(() => {}); }
+  if (v === "search") { renderQuickSearch(); loadDict().catch(() => {}); }
+  if (v === "write") { renderQuickWrite(); loadDict().catch(() => {}); }
 }
 function selectChapter(id) {
   prefs.cur = id; S.confirm = null; S.idx = 0;
-  if (prefs.view === "search") prefs.view = S.lastChapterView || "study";
+  if (isToolView(prefs.view)) prefs.view = S.lastChapterView || "study";
   savePrefs();
   renderAll();
 }
@@ -833,7 +879,7 @@ function showCard() {
   $("#prevBtn").disabled = S.idx === 0; $("#nextBtn").disabled = S.idx >= S.order.length - 1;
   $("#learnBtn").setAttribute("aria-pressed", card.s === 1 ? "true" : "false");
   $("#knowBtn").setAttribute("aria-pressed", card.s === 2 ? "true" : "false");
-  if (card.id !== lastCardId) { lastCardId = card.id; setFace(prefs.front, true); renderCharTabs(card); }
+  if (card.id !== lastCardId) { lastCardId = card.id; setFace(prefs.front, true); studyStrokes.show(disp(card)); }
   else updateFaceBtns();
 }
 function faceNow() { return ((S.spin % 3) + 3) % 3; }
@@ -911,41 +957,73 @@ function loadStrokes(ch, ok, bad) {
   const p = chunkP[name] || (chunkP[name] = fetch("data/strokes/" + name + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(e => { delete chunkP[name]; throw e; }));
   p.then(d => d[ch] ? ok(d[ch]) : bad()).catch(() => bad());
 }
-let writer = null, writerChar = null, quizzing = false;
 const HAN_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
-function renderCharTabs(card) {
-  const tabs = $("#charTabs"); tabs.textContent = "";
-  const chars = [...disp(card)].filter(c => HAN_RE.test(c));
-  chars.forEach((c, i) => {
-    const b = el("button", null, c); b.setAttribute("aria-label", "Stroke order for " + c);
-    b.addEventListener("click", () => { mountWriter(c); markTab(c); writer && writer.animateCharacter(); });
-    tabs.append(b);
-  });
-  tabs.hidden = chars.length < 2;
-  if (chars.length) { mountWriter(chars[0]); markTab(chars[0]); }
-  else { $("#hw").textContent = ""; $("#strokeInfo").textContent = "No characters to draw."; }
-}
-function markTab(c) { for (const b of $$("#charTabs button")) b.setAttribute("aria-pressed", b.textContent === c ? "true" : "false"); }
 function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-function mountWriter(c) {
-  const box = $("#hw"); box.textContent = ""; writerChar = c; quizzing = false;
-  $("#quizBtn").setAttribute("aria-pressed", "false");
-  if (typeof HanziWriter === "undefined") { $("#strokeInfo").textContent = "Stroke animation couldn't load."; return; }
-  const size = Math.floor(box.clientWidth || 0);
-  if (!size) return;
-  boxW = size;
-  $("#strokeInfo").textContent = "Loading strokes…";
-  writer = HanziWriter.create(box, c, {
-    width: size, height: size, padding: Math.round(size * 0.07),
-    showOutline: true, showCharacter: true,
-    strokeColor: tok("--ink"), outlineColor: tok("--line"), highlightColor: tok("--seal"), drawingColor: tok("--seal"),
-    strokeAnimationSpeed: 1, delayBetweenStrokes: 220, strokeHighlightSpeed: 1.5,
-    charDataLoader: loadStrokes,
-    onLoadCharDataSuccess: d => { if (writerChar === c) $("#strokeInfo").textContent = d.strokes.length + (d.strokes.length === 1 ? " stroke" : " strokes"); },
-    onLoadCharDataError: () => { if (writerChar === c) $("#strokeInfo").textContent = "No stroke data for " + c + "."; }
+// One stroke-order panel (character tabs, Hanzi Writer grid, Play / Practice / Hear) built from
+// #strokePanelTpl inside `root`. Each screen that draws characters gets its own instance.
+const strokePanels = [];
+function createStrokePanel(root) {
+  root.append($("#strokePanelTpl").content.cloneNode(true));
+  const tabs = $("[data-tabs]", root), hw = $("[data-hw]", root), info = $("[data-info]", root);
+  const quizBtn = $("[data-quiz]", root);
+  let writer = null, char = null, quizzing = false, boxW = 0;
+  function setQuizzing(on) { quizzing = on; quizBtn.setAttribute("aria-pressed", on ? "true" : "false"); }
+  function mount(c) {
+    hw.textContent = ""; char = c; writer = null; setQuizzing(false);
+    if (typeof HanziWriter === "undefined") { info.textContent = "Stroke animation couldn't load."; return; }
+    const size = Math.floor(hw.clientWidth || 0);
+    if (!size) return; // hidden for now; the ResizeObserver mounts it once it has a size
+    boxW = size;
+    info.textContent = "Loading strokes…";
+    writer = HanziWriter.create(hw, c, {
+      width: size, height: size, padding: Math.round(size * 0.07),
+      showOutline: true, showCharacter: true,
+      strokeColor: tok("--ink"), outlineColor: tok("--line"), highlightColor: tok("--seal"), drawingColor: tok("--seal"),
+      strokeAnimationSpeed: 1, delayBetweenStrokes: 220, strokeHighlightSpeed: 1.5,
+      charDataLoader: loadStrokes,
+      onLoadCharDataSuccess: d => { if (char === c) info.textContent = d.strokes.length + (d.strokes.length === 1 ? " stroke" : " strokes"); },
+      onLoadCharDataError: () => { if (char === c) info.textContent = "No stroke data for " + c + "."; }
+    });
+  }
+  function markTab(c) { for (const b of $$("button", tabs)) b.setAttribute("aria-pressed", b.textContent === c ? "true" : "false"); }
+  // Shows the Han characters of `text`, one tab each (tabs hidden for a single character).
+  function show(text) {
+    tabs.textContent = "";
+    const chars = [...text].filter(c => HAN_RE.test(c));
+    for (const c of chars) {
+      const b = el("button", null, c); b.type = "button"; b.setAttribute("aria-label", "Stroke order for " + c);
+      b.addEventListener("click", () => { mount(c); markTab(c); if (writer) writer.animateCharacter(); });
+      tabs.append(b);
+    }
+    tabs.hidden = chars.length < 2;
+    if (chars.length) { mount(chars[0]); markTab(chars[0]); }
+    else { hw.textContent = ""; char = null; writer = null; info.textContent = "No characters to draw."; }
+  }
+  $("[data-play]", root).addEventListener("click", () => {
+    if (!writer) return;
+    const wasQuizzing = quizzing; if (wasQuizzing) mount(char);
+    setTimeout(() => writer && writer.animateCharacter(), wasQuizzing ? 60 : 0);
   });
+  quizBtn.addEventListener("click", () => {
+    if (!writer) return;
+    if (quizzing) { mount(char); return; }
+    setQuizzing(true);
+    info.textContent = "Trace each stroke in order inside the grid.";
+    writer.quiz({
+      showHintAfterMisses: 2, leniency: 1.1,
+      onMistake: s => { info.textContent = `Stroke ${s.strokeNum + 1}: try again`; },
+      onCorrectStroke: s => { info.textContent = `Stroke ${s.strokeNum + 1} of ${s.strokeNum + 1 + s.strokesRemaining}`; },
+      onComplete: s => { setQuizzing(false); info.textContent = s.totalMistakes ? `Done with ${s.totalMistakes} mistake${s.totalMistakes === 1 ? "" : "s"}. Press Practice to go again.` : "Perfect, no mistakes."; }
+    });
+  });
+  $("[data-speak]", root).addEventListener("click", () => { if (char) speak(char); });
+  new ResizeObserver(entries => { const w = Math.round(entries[0].contentRect.width); if (w && Math.abs(w - boxW) > 4 && char) mount(char); }).observe(hw);
+  const panel = { show, remount: () => { if (char && root.offsetParent !== null) mount(char); } };
+  strokePanels.push(panel);
+  return panel;
 }
-function remountForTheme() { if (writerChar && !$("#strokePanel").hidden) mountWriter(writerChar); }
+const studyStrokes = createStrokePanel($("#strokePanel"));
+function remountForTheme() { for (const p of strokePanels) p.remount(); }
 
 /* ================= word list ================= */
 function renderList() {
@@ -1319,6 +1397,66 @@ function renderQsResult(it) {
   return card;
 }
 
+/* ================= quick write ================= */
+// Stroke order for any characters or pinyin, with a one-line reading and meaning. Like Quick search,
+// nothing is saved: QW.item is a makeItem() object, so itemFinal(QW.item) is a ready card.
+const QW = { q: "", item: null, alts: [] };
+async function runQuickWrite() {
+  const q = $("#qwInput").value.trim();
+  QW.q = q;
+  if (!q) { QW.item = null; QW.alts = []; renderQuickWrite(); return; }
+  try { await loadDict(); } catch (e) { return; }
+  if (QW.q !== q) return; // a newer entry arrived while the dictionary loaded
+  if (HAN_RE.test(q)) {
+    const w = [...q].filter(c => HAN_RE.test(c)).slice(0, 12).join("");
+    QW.item = makeItem(w, ""); QW.alts = [];
+  } else {
+    // Pinyin: write the best match, and offer the next few in case it meant another word.
+    const res = quickSearch(q);
+    QW.item = res[0] || null; QW.alts = res.slice(1, 8);
+  }
+  renderQuickWrite();
+}
+function pickQuickWrite(it) {
+  QW.alts = [QW.item].concat(QW.alts.filter(a => a !== it)).slice(0, 7);
+  QW.item = it; renderQuickWrite();
+}
+let qwShown = null; // the item the panel is drawing, so re-renders (e.g. 简/繁 switch) only redraw when needed
+function renderQuickWrite() {
+  const empty = $("#qwEmpty"), body = $("#qwBody"), brief = $("#qwBrief");
+  empty.textContent = ""; brief.textContent = "";
+  if (!QW.item) {
+    body.hidden = true; qwShown = null;
+    const e = el("div", "empty");
+    e.append(el("div", "big", "写"), el("div", null, QW.q
+      ? `No words found for “${QW.q}”. Try tone numbers like ni3 hao3, or type the characters.`
+      : "Type characters (好, 胳膊) or pinyin (hao3, nihao) to see how to write them."));
+    empty.append(e); return;
+  }
+  body.hidden = false;
+  const it = QW.item, f = itemFinal(it), shown = disp(it);
+  const key = shown + "|" + it.key;
+  if (qwShown !== key) { qwShown = key; qwPanel.show(shown); }
+  brief.append(el("div", "qw-word", shown));
+  const line = el("div", "qw-line");
+  const pin = el("span", "qs-pin"); pin.append(toneSpans(f.p));
+  line.append(pin, el("span", "qw-def", splitDef(prettyDef(f.d || "")).senses.slice(0, 2).join("; ") || "No definition"));
+  brief.append(line);
+  if (QW.alts.length) {
+    const alts = el("div", "qw-alts"); alts.append(el("div", "lbl", "Did you mean"));
+    const chips = el("div", "chips");
+    for (const a of QW.alts) {
+      const fa = itemFinal(a), c = el("button", "chip"); c.type = "button";
+      const p = el("span", "cp"); p.append(toneSpans(fa.p));
+      c.append(el("span", "cw", disp(a)), p);
+      c.addEventListener("click", () => pickQuickWrite(a));
+      chips.append(c);
+    }
+    alts.append(chips); brief.append(alts);
+  }
+}
+const qwPanel = createStrokePanel($("#qwPanel"));
+
 function createChapter(name, view) {
   const id = "c" + uid();
   const ch = { id, name: name.slice(0, 60), created: Date.now(), cards: [] };
@@ -1417,22 +1555,8 @@ $("#slowBtn").addEventListener("click", () => { prefs.slow = !prefs.slow; savePr
 $("#prevBtn").addEventListener("click", () => go(-1));
 $("#nextBtn").addEventListener("click", () => go(1));
 $("#speakBtn").addEventListener("click", () => { const c = cardAt(); if (c) speak(c.w); });
-$("#charSpeak").addEventListener("click", () => { if (writerChar) speak(writerChar); });
 $("#learnBtn").addEventListener("click", () => grade(1));
 $("#knowBtn").addEventListener("click", () => grade(2));
-$("#playBtn").addEventListener("click", () => { if (!writer) return; if (quizzing) { mountWriter(writerChar); } setTimeout(() => writer && writer.animateCharacter(), quizzing ? 60 : 0); quizzing = false; $("#quizBtn").setAttribute("aria-pressed", "false"); });
-$("#quizBtn").addEventListener("click", () => {
-  if (!writer) return;
-  if (quizzing) { mountWriter(writerChar); return; }
-  quizzing = true; $("#quizBtn").setAttribute("aria-pressed", "true");
-  $("#strokeInfo").textContent = "Trace each stroke in order inside the grid.";
-  writer.quiz({
-    showHintAfterMisses: 2, leniency: 1.1,
-    onMistake: s => { $("#strokeInfo").textContent = `Stroke ${s.strokeNum + 1}: try again`; },
-    onCorrectStroke: s => { $("#strokeInfo").textContent = `Stroke ${s.strokeNum + 1} of ${s.strokeNum + 1 + s.strokesRemaining}`; },
-    onComplete: s => { quizzing = false; $("#quizBtn").setAttribute("aria-pressed", "false"); $("#strokeInfo").textContent = s.totalMistakes ? `Done with ${s.totalMistakes} mistake${s.totalMistakes === 1 ? "" : "s"}. Press Practice to go again.` : "Perfect, no mistakes."; }
-  });
-});
 $("#lookupBtn").addEventListener("click", doLookup);
 $("#addText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doLookup(); } });
 const addPhoto = wirePhoto({ pickBtn: $("#photoBtn"), input: $("#photoInput"), status: $("#ocrStatus"), onLines: (lines, report) => {
@@ -1442,18 +1566,25 @@ const addPhoto = wirePhoto({ pickBtn: $("#photoBtn"), input: $("#photoInput"), s
   box.focus();
 } });
 $("#clearBtn").addEventListener("click", () => { $("#addText").value = ""; addPhoto.report(""); $("#addText").focus(); });
+// Runs `run` shortly after typing pauses (and right away on submit), waiting for the IME to finish a character.
+// Returns a function that runs it immediately.
+function liveInput(form, input, run) {
+  let t = 0;
+  const later = () => { clearTimeout(t); t = setTimeout(run, 250); };
+  const now = () => { clearTimeout(t); run(); };
+  input.addEventListener("input", e => { if (!e.isComposing) later(); });
+  input.addEventListener("compositionend", later);
+  form.addEventListener("submit", e => { e.preventDefault(); now(); });
+  return now;
+}
 $("#qsOpen").addEventListener("click", () => { setView("search"); setTimeout(() => $("#qsInput").focus(), 50); });
-$("#qsForm").addEventListener("submit", e => { e.preventDefault(); clearTimeout(qsTimer); runQuickSearch(); });
-let qsTimer = 0;
-$("#qsInput").addEventListener("input", e => {
-  if (e.isComposing) return; // wait for the IME to finish the character
-  clearTimeout(qsTimer); qsTimer = setTimeout(runQuickSearch, 250);
-});
-$("#qsInput").addEventListener("compositionend", () => { clearTimeout(qsTimer); qsTimer = setTimeout(runQuickSearch, 250); });
+$("#qwOpen").addEventListener("click", () => { setView("write"); setTimeout(() => $("#qwInput").focus(), 50); });
+const searchNow = liveInput($("#qsForm"), $("#qsInput"), runQuickSearch);
+liveInput($("#qwForm"), $("#qwInput"), runQuickWrite);
 const qsPhoto = wirePhoto({ pickBtn: $("#qsPhotoBtn"), input: $("#qsPhotoInput"), status: $("#qsOcrStatus"), onLines: (lines, report) => {
   $("#qsInput").value = lines.join(" ");
   report("Read " + plural(hanCount(lines), "character") + ". Fix anything the camera got wrong in the box above and search again.");
-  clearTimeout(qsTimer); runQuickSearch();
+  searchNow();
 } });
 // Pasting an image (Ctrl/⌘+V, or long-press → Paste on a phone) reads it into whichever screen is showing.
 const PHOTO_TARGET = { add: addPhoto, search: qsPhoto };
@@ -1474,8 +1605,6 @@ document.addEventListener("keydown", e => {
   else if (e.key === "1" || e.key === "2" || e.key === "3") setFace(+e.key - 1);
 });
 new ResizeObserver(() => sizePrism()).observe($("#stage"));
-let boxW = 0;
-new ResizeObserver(entries => { const w = Math.round(entries[0].contentRect.width); if (w && Math.abs(w - boxW) > 4) { boxW = w; if (writerChar) mountWriter(writerChar); } }).observe($("#hw"));
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", remountForTheme); } catch (e) {}
 new MutationObserver(remountForTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
