@@ -4,7 +4,7 @@ Mandarin flashcards for studying a class's vocab chapter by chapter. Each card h
 
 It's a plain static site with no build step, no backend, and no accounts. Open it and start studying.
 
-**Live site:** `https://<your-username>.github.io/hanzi-cards/`
+**Live site:** `https://itsfavio.github.io/hanzi-cards/`
 
 ## Features
 
