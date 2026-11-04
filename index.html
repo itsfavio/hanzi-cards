@@ -461,7 +461,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
                 <li>Characters plus your own meaning: <code>你好 hello there</code> (pinyin right after the characters is detected and used to pick the reading)</li>
                 <li>Pinyin to search: <code>nǐ hǎo</code>, <code>ni3 hao3</code> or <code>nihao</code>, then pick the word</li>
               </ul>
-              Or press <b>From a photo</b> to read characters off a picture of a vocab list or textbook page.
+              Or press <b>From a photo</b> to read characters off a picture of a vocab list or textbook page, or paste a copied image into the box (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>, or long-press and Paste on a phone).
             </div>
             <div class="hint" data-dict-status></div>
           </div>
@@ -475,7 +475,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
           <div>
             <div class="eyebrow">Quick search · 查字</div>
             <h1>Look up a word</h1>
-            <div class="head-meta">Nothing here is added to your chapters.</div>
+            <div class="head-meta">Nothing here is added to your chapters. You can also paste a copied image of characters (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>, or long-press the box and Paste).</div>
           </div>
         </div>
         <form class="qs-form" id="qsForm" role="search">
@@ -1373,20 +1373,18 @@ async function readHanFromImage(file, report) {
       .filter(Boolean);
   } finally { ocrReport = () => {}; }
 }
-// Hooks a "From a photo" button to its hidden file input and status line. onLines(lines, report)
-// puts the recognised text where that screen needs it. Returns the status setter.
+// Hooks one screen's "From a photo" file picker to its status line and returns readImage, which every
+// image for that screen goes through (picked or pasted; see the paste listener).
+// onLines(lines, report) puts the recognised text where that screen needs it.
 const photoBtns = [];
-function wirePhoto(btn, input, statusEl, onLines) {
-  photoBtns.push(btn);
-  const report = msg => { statusEl.hidden = !msg; statusEl.textContent = msg || ""; };
-  btn.addEventListener("click", () => input.click());
-  input.addEventListener("change", async e => {
-    const file = e.target.files && e.target.files[0]; e.target.value = "";
-    if (!file || ocrBusy) return;
-    if (!/^image\//.test(file.type || "")) { toast("Choose an image file."); return; }
+function wirePhoto({ pickBtn, input, status, onLines }) {
+  const report = msg => { status.hidden = !msg; status.textContent = msg || ""; };
+  async function readImage(blob) {
+    if (!blob || ocrBusy) return;
+    if (!/^image\//.test(blob.type || "")) { toast("Choose an image file."); return; }
     ocrBusy = true; photoBtns.forEach(b => b.disabled = true);
     try {
-      const lines = await readHanFromImage(file, report);
+      const lines = await readHanFromImage(blob, report);
       if (!lines.length) { report("No Chinese characters found in that image. Try a clearer, straighter, well-lit photo."); return; }
       onLines(lines, report);
     } catch (err) {
@@ -1394,8 +1392,16 @@ function wirePhoto(btn, input, statusEl, onLines) {
     } finally {
       ocrBusy = false; photoBtns.forEach(b => b.disabled = false);
     }
-  });
-  return report;
+  }
+  photoBtns.push(pickBtn);
+  pickBtn.addEventListener("click", () => input.click());
+  input.addEventListener("change", e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; readImage(f); });
+  return { report, readImage };
+}
+// First image in a paste event, or null when the paste is text (which is left to the browser).
+function pastedImage(e) {
+  for (const it of (e.clipboardData && e.clipboardData.items) || []) if (it.kind === "file" && it.type.startsWith("image/")) return it.getAsFile();
+  return null;
 }
 const hanCount = lines => lines.reduce((n, l) => n + [...l].length, 0);
 const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
@@ -1436,13 +1442,13 @@ $("#quizBtn").addEventListener("click", () => {
 });
 $("#lookupBtn").addEventListener("click", doLookup);
 $("#addText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doLookup(); } });
-const addPhotoStatus = wirePhoto($("#photoBtn"), $("#photoInput"), $("#ocrStatus"), (lines, report) => {
+const addPhoto = wirePhoto({ pickBtn: $("#photoBtn"), input: $("#photoInput"), status: $("#ocrStatus"), onLines: (lines, report) => {
   const box = $("#addText"), text = lines.join("\n");
   box.value = box.value.trim() ? box.value.replace(/\s+$/, "") + "\n" + text : text;
   report("Read " + plural(hanCount(lines), "character") + ". Check the text above and fix anything the camera got wrong, then press Look up.");
   box.focus();
-});
-$("#clearBtn").addEventListener("click", () => { $("#addText").value = ""; addPhotoStatus(""); $("#addText").focus(); });
+} });
+$("#clearBtn").addEventListener("click", () => { $("#addText").value = ""; addPhoto.report(""); $("#addText").focus(); });
 $("#qsOpen").addEventListener("click", () => { setView("search"); setTimeout(() => $("#qsInput").focus(), 50); });
 $("#qsForm").addEventListener("submit", e => { e.preventDefault(); clearTimeout(qsTimer); runQuickSearch(); });
 let qsTimer = 0;
@@ -1451,10 +1457,18 @@ $("#qsInput").addEventListener("input", e => {
   clearTimeout(qsTimer); qsTimer = setTimeout(runQuickSearch, 250);
 });
 $("#qsInput").addEventListener("compositionend", () => { clearTimeout(qsTimer); qsTimer = setTimeout(runQuickSearch, 250); });
-wirePhoto($("#qsPhotoBtn"), $("#qsPhotoInput"), $("#qsOcrStatus"), (lines, report) => {
+const qsPhoto = wirePhoto({ pickBtn: $("#qsPhotoBtn"), input: $("#qsPhotoInput"), status: $("#qsOcrStatus"), onLines: (lines, report) => {
   $("#qsInput").value = lines.join(" ");
   report("Read " + plural(hanCount(lines), "character") + ". Fix anything the camera got wrong in the box above and search again.");
   clearTimeout(qsTimer); runQuickSearch();
+} });
+// Pasting an image (Ctrl/⌘+V, or long-press → Paste on a phone) reads it into whichever screen is showing.
+const PHOTO_TARGET = { add: addPhoto, search: qsPhoto };
+document.addEventListener("paste", e => {
+  const target = PHOTO_TARGET[prefs.view];
+  if (!target || !$("#scriptModal").hidden) return;
+  const img = pastedImage(e); if (!img) return;
+  e.preventDefault(); target.readImage(img);
 });
 document.addEventListener("keydown", e => {
   if (prefs.view !== "study" || e.metaKey || e.ctrlKey || e.altKey || !$("#scriptModal").hidden) return;

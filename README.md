@@ -16,6 +16,8 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
 - **Simplified or traditional.** Chosen on first visit, switchable any time with the 简 / 繁 toggle.
 - **Built-in dictionary.** Type characters or pinyin and the pinyin and meanings fill in automatically from CC-CEDICT (about 120k words).
 - **Add from a photo.** Snap or upload a picture of a vocab list or textbook page and the app reads the characters off it — right in your browser — and drops them in the box, ready to look up.
+- **Paste an image.** Copy a screenshot or picture of characters and paste it with Ctrl/⌘ + V (or long-press → Paste on a phone) on the Add words tab or Quick search. It's read the same way as a photo.
+- **Quick search.** Look up any character, word or pinyin to see its readings, meanings and a character-by-character breakdown, without adding it to a chapter.
 - **Self-grading.** Mark cards "I know it" or "Still learning," then filter to just the ones you haven't learned yet.
 
 ## How to use it
@@ -32,7 +34,7 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
    ni3 hao3                 tone numbers work too
    ```
 
-   Or press **From a photo** and pick (or snap) a picture of your vocab list. The app reads the characters off it and puts them in the box for you to check and look up.
+   Or press **From a photo** and pick (or snap) a picture of your vocab list. The app reads the characters off it and puts them in the box for you to check and look up. You can also copy an image and paste it straight in: Ctrl/⌘ + V on a computer, or long-press the box and tap **Paste** on a phone.
 
    Everything shows up for review first. You can switch readings for characters with more than one (行 xíng / háng), edit meanings, or remove entries. Then press **Add**. Words already in the chapter are skipped.
 4. **Study.** On the **Study** tab, tap the card to turn it. Hit **Hear it** for pronunciation and use the stroke-order panel to watch or practice each character. Grade yourself as you go.
