@@ -827,11 +827,11 @@ function speak(text) {
   const syn = window.speechSynthesis;
   if (!syn || typeof SpeechSynthesisUtterance === "undefined") { toast("This browser can't play speech."); return; }
   if (!voice) pickVoice();
-  syn.cancel();
+  if (syn.speaking || syn.pending) syn.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = voice ? voice.lang : "zh-CN"; if (voice) u.voice = voice;
-  u.rate = prefs.slow ? 0.55 : 0.9;
-  syn.speak(u);
+  u.rate = prefs.slow ? 0.5 : 0.9;
+  syn.speak(u); // synchronous: iOS only allows speech started directly from the tap
   if (!voice && voicesChecked) $("#voiceNote").hidden = false;
 }
 
