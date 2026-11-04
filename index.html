@@ -78,6 +78,7 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .chap.example .nm::after { content: "example"; font-family: var(--f-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-left: 6px; opacity: .7; }
 .new-chap { display: flex; gap: 6px; }
 .new-chap input { flex: 1; min-width: 0; }
+.rail-search { width: 100%; justify-content: center; }
 .sync { margin-top: auto; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
 .dot.on { background: var(--ok); }
@@ -191,6 +192,36 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .icon-btn:hover { background: var(--hl); color: var(--ink); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+/* ---------- quick search ---------- */
+.chapter-chrome { display: contents; }
+.chapter-chrome[hidden] { display: none; }
+.qs { display: flex; flex-direction: column; gap: 16px; }
+.qs-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.qs-form .field { flex: 1 1 260px; min-width: 0; font-size: 18px; padding: 10px 12px; }
+.qs-results { display: flex; flex-direction: column; gap: 12px; }
+.qs-card { border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 16px 18px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 22px; }
+.qs-side { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.qs-word { font-family: var(--f-han); font-size: 48px; font-weight: 700; line-height: 1.05; }
+.qs-other { font-family: var(--f-han); color: var(--muted); font-size: 14px; }
+.qs-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.qs-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.qs-readings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.qs-readings li + li { border-top: 1px dashed var(--line); padding-top: 10px; }
+.qs-pin { font-size: 20px; font-weight: 500; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .28em; }
+.qs-pin .pin-num { font-size: 12px; margin-left: .5em; }
+.qs-def { overflow-wrap: anywhere; }
+.qs-note { font-size: 12px; color: var(--muted); }
+.qs-parts { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.qs-part { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.qs-part .c { font-family: var(--f-han); font-size: 22px; font-weight: 500; line-height: 1.2; }
+.qs-part .p { font-size: 14px; white-space: nowrap; }
+.qs-part .d { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) {
+  .qs-card { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+  .qs-side { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .qs-actions { margin-left: auto; }
+}
+
 /* ---------- add words ---------- */
 .add-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
 .add-in { display: flex; flex-direction: column; gap: 10px; }
@@ -289,11 +320,13 @@ td.pc { width: 22%; } td.dc { width: 48%; }
       <input class="field" id="newChapName" placeholder="New chapter, e.g. 第三课" aria-label="New chapter name" maxlength="60">
       <button class="btn" type="submit" aria-label="Create chapter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg></button>
     </form>
+    <button class="btn rail-search" id="qsOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.3"/><path d="m10.2 10.2 3.3 3.3"/></svg>Quick search</button>
     <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Saved in this browser</span></div>
   </nav>
 
   <main>
     <div class="wrap">
+      <div class="chapter-chrome" id="chapterChrome">
       <div class="head">
         <div>
           <div class="eyebrow" id="headEyebrow">Chapter</div>
@@ -312,6 +345,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
         <button class="tab" role="tab" id="tab-study" data-view="study">Study</button>
         <button class="tab" role="tab" id="tab-list" data-view="list">Words</button>
         <button class="tab" role="tab" id="tab-add" data-view="add">Add words</button>
+      </div>
       </div>
 
       <!-- STUDY -->
@@ -429,10 +463,30 @@ td.pc { width: 22%; } td.dc { width: 48%; }
               </ul>
               Or press <b>From a photo</b> to read characters off a picture of a vocab list or textbook page.
             </div>
-            <div class="hint" id="dictStatus"></div>
+            <div class="hint" data-dict-status></div>
           </div>
           <div class="pending" id="pending"></div>
         </div>
+      </section>
+
+      <!-- QUICK SEARCH: look words up without adding them to a chapter -->
+      <section id="v-search" class="qs" hidden>
+        <div class="head">
+          <div>
+            <div class="eyebrow">Quick search · 查字</div>
+            <h1>Look up a word</h1>
+            <div class="head-meta">Nothing here is added to your chapters.</div>
+          </div>
+        </div>
+        <form class="qs-form" id="qsForm" role="search">
+          <input class="field han" id="qsInput" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="好 · 你好 · hao3 · nihao" aria-label="Characters or pinyin to look up">
+          <button class="btn primary" type="submit">Search</button>
+          <button class="btn" id="qsPhotoBtn" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h2l1-1.4h3l1 1.4h2a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/><circle cx="8" cy="9" r="2.1"/></svg>From a photo</button>
+          <input type="file" id="qsPhotoInput" accept="image/*" hidden>
+        </form>
+        <div class="hint" id="qsOcrStatus" hidden></div>
+        <div class="hint" data-dict-status></div>
+        <div class="qs-results" id="qsResults" aria-live="polite"></div>
       </section>
     </div>
   </main>
@@ -637,7 +691,8 @@ function renderRail() {
   const items = chapterList();
   for (const ch of items.concat(items.length ? [] : [SAMPLE])) {
     const li = el("li"); const b = el("button", "chap" + (ch.sample ? " example" : ""));
-    b.setAttribute("aria-current", ch.id === cur.id ? "true" : "false");
+    b.dataset.id = ch.id;
+    b.setAttribute("aria-current", ch.id === cur.id && prefs.view !== "search" ? "true" : "false");
     b.append(el("span", "nm", ch.name), el("span", "n", String(ch.cards.length)));
     b.addEventListener("click", () => selectChapter(ch.id));
     li.append(b); ul.append(li);
@@ -685,16 +740,26 @@ function renderConfirm() {
   }
   box.append(row);
 }
+// Views: "study" | "list" | "add" belong to the current chapter; "search" is chapter-independent
+// and hides the chapter header and tabs.
 function setView(v) {
+  if (v !== "search") S.lastChapterView = v;
   prefs.view = v; savePrefs();
+  const searching = v === "search";
   for (const t of $$(".tab")) t.setAttribute("aria-selected", t.dataset.view === v ? "true" : "false");
-  $("#v-study").hidden = v !== "study"; $("#v-list").hidden = v !== "list"; $("#v-add").hidden = v !== "add";
+  $("#chapterChrome").hidden = searching;
+  $("#qsOpen").setAttribute("aria-pressed", searching ? "true" : "false");
+  for (const b of $$("#chapList .chap")) b.setAttribute("aria-current", !searching && b.dataset.id === current().id ? "true" : "false");
+  $("#v-study").hidden = v !== "study"; $("#v-list").hidden = v !== "list"; $("#v-add").hidden = v !== "add"; $("#v-search").hidden = !searching;
   if (v === "study") { showCard(); }
   if (v === "list") renderList();
   if (v === "add") { renderPending(); if (!current().sample) loadDict().catch(() => {}); }
+  if (searching) { renderQuickSearch(); loadDict().catch(() => {}); }
 }
 function selectChapter(id) {
-  prefs.cur = id; savePrefs(); S.confirm = null; S.idx = 0;
+  prefs.cur = id; S.confirm = null; S.idx = 0;
+  if (prefs.view === "search") prefs.view = S.lastChapterView || "study";
+  savePrefs();
   renderAll();
 }
 function renderAll(keepPos) {
@@ -924,9 +989,10 @@ function renderList() {
 
 /* ================= dictionary ================= */
 let DICT = null, dictP = null;
+function setDictStatus(msg) { for (const e of $$("[data-dict-status]")) e.textContent = msg; }
 function loadDict() {
   if (dictP) return dictP;
-  $("#dictStatus").textContent = "Loading the dictionary (about 9 MB the first time)…";
+  setDictStatus("Loading the dictionary (about 9 MB the first time)…");
   dictP = fetch("data/dict.tsv").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); }).then(txt => {
     const bySimp = new Map(), byTrad = new Map();
     const push = (m, k, e) => { const a = m.get(k); if (a) a.push(e); else m.set(k, [e]); };
@@ -936,9 +1002,9 @@ function loadDict() {
       push(bySimp, e.w, e); if (e.t) push(byTrad, e.t, e);
     }
     DICT = { bySimp, byTrad, pin: null };
-    $("#dictStatus").textContent = "Dictionary ready · CC-CEDICT, " + bySimp.size.toLocaleString() + " words.";
+    setDictStatus("Dictionary ready · CC-CEDICT, " + bySimp.size.toLocaleString() + " words.");
     return DICT;
-  }).catch(e => { dictP = null; $("#dictStatus").textContent = "The dictionary didn't load. Check your connection and press Look up again."; throw e; });
+  }).catch(e => { dictP = null; setDictStatus("The dictionary didn't load. Check your connection and try again."); throw e; });
   return dictP;
 }
 function lookup(w) { return (DICT.bySimp.get(w) || DICT.byTrad.get(w) || []).slice(); }
@@ -1004,6 +1070,16 @@ function makeItem(rawWord, rest) {
   if (composed) note = "Not in the dictionary as one word, built from its parts";
   return { key: uid(), w: simp, t: trad, readings, sel, custom, note, pinOverride: "" };
 }
+// Splits a run of text into dictionary words: whole tokens when the dictionary knows them,
+// otherwise the longest known pieces. Non-Han characters act as separators.
+function hanWords(text) {
+  const out = [];
+  for (const tokRaw of text.split(/[\s,，、;；。.!！?？\/|·・]+/)) {
+    const tk = [...tokRaw].filter(c => HAN_RE.test(c)).join(""); if (!tk) continue;
+    if (lookup(tk).length) out.push(tk); else out.push(...segment(tk));
+  }
+  return out;
+}
 function parseInput(text) {
   const items = [], queries = [];
   for (const raw of text.split(/\n/)) {
@@ -1016,11 +1092,7 @@ function parseInput(text) {
       const word = [...hanPart].filter(c => HAN_RE.test(c)).join("");
       if (word) items.push(makeItem(word, rest));
     } else {
-      for (const tokRaw of hanPart.split(/[\s,，、;；。.!！?？\/|·・]+/)) {
-        const tk = [...tokRaw].filter(c => HAN_RE.test(c)).join(""); if (!tk) continue;
-        if (lookup(tk).length) items.push(makeItem(tk, ""));
-        else for (const w of segment(tk)) items.push(makeItem(w, ""));
-      }
+      for (const w of hanWords(hanPart)) items.push(makeItem(w, ""));
     }
   }
   return { items, queries };
@@ -1054,6 +1126,17 @@ async function doLookup() {
 function itemFinal(it) {
   const r = it.readings[it.sel] || it.readings[0] || { p: "", d: "" };
   return { w: it.w, t: it.t || "", p: it.pinOverride || r.p, d: it.custom || r.d };
+}
+// Adds card-ready {w, t, p, d} objects (see itemFinal) to a chapter, skipping words it already has.
+// Returns how many were added. Callers must not pass the sample deck, which is never saved.
+function addCardsToChapter(ch, finals) {
+  const seen = new Set(ch.cards.map(c => c.w)); let n = 0;
+  for (const f of finals) {
+    if (seen.has(f.w)) continue; seen.add(f.w);
+    ch.cards.push({ id: uid(), w: f.w, t: f.t, p: f.p, d: f.d, s: 0 }); n++;
+  }
+  if (n) saveChapter(ch);
+  return n;
 }
 function renderPending() {
   const box = $("#pending"); box.textContent = "";
@@ -1129,10 +1212,8 @@ function renderPending() {
     add.addEventListener("click", () => {
       // pick up any field still focused
       if (document.activeElement && document.activeElement.dispatchEvent) document.activeElement.dispatchEvent(new Event("change"));
-      const seen = new Set(existing);
-      for (const it of S.pending) { if (seen.has(it.w)) continue; seen.add(it.w); const f = itemFinal(it); ch.cards.push({ id: uid(), w: f.w, t: f.t, p: f.p, d: f.d, s: 0 }); }
-      const n = seen.size - existing.size;
-      S.pending = []; saveChapter(ch); lastCardId = null;
+      const n = addCardsToChapter(ch, S.pending.map(itemFinal));
+      S.pending = []; lastCardId = null;
       renderRail(); renderHead(); buildOrder(true); renderPending();
       toast(`Added ${n} card${n === 1 ? "" : "s"} to ${ch.name}`);
     });
@@ -1143,6 +1224,101 @@ function renderPending() {
     box.append(e);
   }
 }
+/* ================= quick search ================= */
+// Looks words up without touching any chapter. Each result is a makeItem() object, the same shape the
+// Add words tab reviews, so itemFinal(result) is already a card ({w, t, p, d}) with the shown reading
+// selected. To add "Add to chapter" later, put a button in the actions slot of renderQsResult that calls
+// addCardsToChapter(current(), [itemFinal(it)]) (and handles the sample deck, which can't be saved).
+const QS = { q: "", results: [] };
+const QS_MAX = 30;
+function quickSearch(q) {
+  const out = [], seen = new Set();
+  if (HAN_RE.test(q)) {
+    for (const w of hanWords(q)) { if (seen.has(w)) continue; seen.add(w); out.push(makeItem(w, "")); if (out.length >= QS_MAX) break; }
+    return out;
+  }
+  // Pinyin: searchPinyin ranks one entry per reading; show each word once, with the matched reading selected.
+  for (const e of searchPinyin(q)) {
+    if (seen.has(e.w)) continue; seen.add(e.w);
+    const it = makeItem(e.w, ""); const i = it.readings.findIndex(r => r.p === numToMarks(e.n)); if (i >= 0) it.sel = i;
+    out.push(it);
+  }
+  return out;
+}
+async function runQuickSearch() {
+  const q = $("#qsInput").value.trim();
+  QS.q = q;
+  if (!q) { QS.results = []; renderQuickSearch(); return; }
+  try { await loadDict(); } catch (e) { return; }
+  if (QS.q !== q) return; // a newer search started while the dictionary loaded
+  QS.results = quickSearch(q);
+  renderQuickSearch();
+}
+function toneSpans(p) {
+  const f = document.createDocumentFragment();
+  for (const s of (p || "").split(/\s+/).filter(Boolean)) f.append(el("span", "tone" + toneOf(s), s));
+  return f;
+}
+function renderQuickSearch() {
+  const box = $("#qsResults"); box.textContent = "";
+  if (!QS.q) {
+    const e = el("div", "empty"); e.append(el("div", "big", "查"), el("div", null, "Type characters (好, 你好) or pinyin (hao3, nǐ hǎo, nihao) to see the meaning and pinyin."));
+    box.append(e); return;
+  }
+  if (!QS.results.length) {
+    const e = el("div", "empty"); e.append(el("div", "big", "无"), el("div", null, `No words found for “${QS.q}”. Try tone numbers like ni3 hao3, or type the characters.`));
+    box.append(e); return;
+  }
+  for (const it of QS.results) box.append(renderQsResult(it));
+}
+function renderQsResult(it) {
+  const card = el("article", "qs-card");
+  const shown = disp(it);
+  const side = el("div", "qs-side");
+  side.append(el("div", "qs-word", shown));
+  const of = otherForm(it);
+  if (of) side.append(el("div", "qs-other", (isTrad() ? "Simplified " : "Traditional ") + of));
+  const actions = el("div", "qs-actions");
+  const hear = el("button", "btn"); hear.type = "button"; hear.innerHTML = ICON_SPK + "Hear it"; hear.setAttribute("aria-label", "Hear " + shown);
+  hear.addEventListener("click", () => speak(shown));
+  actions.append(hear);
+  // Actions slot: the future "Add to chapter" button goes here (see the note at the top of this section).
+  side.append(actions);
+
+  const main = el("div", "qs-main");
+  const ol = el("ol", "qs-readings");
+  const order = [it.sel].concat(it.readings.map((_, i) => i).filter(i => i !== it.sel));
+  for (const i of order) {
+    const r = it.readings[i]; if (!r) continue;
+    const li = el("li");
+    const pin = el("div", "qs-pin"); pin.append(toneSpans(r.p)); pin.append(el("span", "pin-num", marksToNum(r.p)));
+    const { senses, mw } = splitDef(prettyDef(r.d || ""));
+    li.append(pin, el("div", "qs-def", senses.join("; ") || "No definition"));
+    if (mw) { const m = el("div", "mw"); m.append("Measure word: ", el("b", null, mw)); li.append(m); }
+    ol.append(li);
+  }
+  main.append(ol);
+  if (it.note) main.append(el("div", "qs-note", it.note));
+  card.append(side, main);
+
+  // Character-by-character breakdown for multi-character words.
+  const chars = [...it.w], tchars = [...(it.t || "")];
+  if (chars.length > 1) {
+    const parts = el("div", "qs-parts"); parts.append(el("div", "eyebrow", "Characters"));
+    chars.forEach((c, i) => {
+      const rs = readingsFor(c);
+      const row = el("div", "qs-part");
+      row.append(el("span", "c", isTrad() && tchars[i] ? tchars[i] : c));
+      const p = el("span", "p");
+      rs.slice(0, 3).forEach((r, k) => { if (k) p.append(" / "); p.append(toneSpans(r.p)); });
+      row.append(p, el("span", "d", rs[0] ? splitDef(prettyDef(rs[0].d)).senses[0] || "" : ""));
+      parts.append(row);
+    });
+    card.append(parts);
+  }
+  return card;
+}
+
 function createChapter(name, view) {
   const id = "c" + uid();
   const ch = { id, name: name.slice(0, 60), created: Date.now(), cards: [] };
@@ -1159,7 +1335,7 @@ function createChapter(name, view) {
 // entirely in the browser, so the photo never leaves the device.
 const OCR_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
 let ocrScriptP = null, ocrWorker = null, ocrWorkerLang = null, ocrBusy = false;
-function setOcrStatus(msg) { const e = $("#ocrStatus"); e.hidden = !msg; e.textContent = msg || ""; }
+let ocrReport = () => {}; // progress callback of the photo currently being read
 function loadTesseract() {
   if (window.Tesseract) return Promise.resolve(window.Tesseract);
   if (ocrScriptP) return ocrScriptP;
@@ -1177,38 +1353,52 @@ async function ocrWorkerFor(lang) {
   const T = await loadTesseract();
   if (ocrWorker) { try { await ocrWorker.terminate(); } catch (e) {} ocrWorker = null; ocrWorkerLang = null; }
   ocrWorker = await T.createWorker(lang, 1, {
-    logger: m => { if (m.status === "recognizing text") setOcrStatus("Reading the image… " + Math.round((m.progress || 0) * 100) + "%"); }
+    logger: m => { if (m.status === "recognizing text") ocrReport("Reading the image… " + Math.round((m.progress || 0) * 100) + "%"); }
   });
   ocrWorkerLang = lang;
   return ocrWorker;
 }
-async function runOCR(file) {
-  if (ocrBusy) return;
-  if (!file || !/^image\//.test(file.type || "")) { toast("Choose an image file."); return; }
-  ocrBusy = true; $("#photoBtn").disabled = true;
-  const lang = isTrad() ? "chi_tra" : "chi_sim";
-  setOcrStatus("Loading the character reader (the first photo downloads a few MB)…");
+// Reads Chinese off an image. Returns one string per source line, Han characters only.
+// Knows nothing about the page: each screen decides where the text goes (see wirePhoto).
+async function readHanFromImage(file, report) {
+  ocrReport = report;
   try {
-    const worker = await ocrWorkerFor(lang);
-    setOcrStatus("Reading the image…");
+    report("Loading the character reader (the first photo downloads a few MB)…");
+    const worker = await ocrWorkerFor(isTrad() ? "chi_tra" : "chi_sim");
+    report("Reading the image…");
     const { data } = await worker.recognize(file);
-    // Keep only Han characters, one source line per line, dropping stray punctuation and latin noise.
-    const lines = ((data && data.text) || "").split(/\n+/)
+    // Drop stray punctuation and latin noise.
+    return ((data && data.text) || "").split(/\n+/)
       .map(line => [...line].filter(c => HAN_RE.test(c)).join(""))
       .filter(Boolean);
-    const text = lines.join("\n");
-    if (!text) { setOcrStatus("No Chinese characters found in that image. Try a clearer, straighter, well-lit photo."); return; }
-    const box = $("#addText");
-    box.value = box.value.trim() ? box.value.replace(/\s+$/, "") + "\n" + text : text;
-    const n = [...text].filter(c => HAN_RE.test(c)).length;
-    setOcrStatus("Read " + n + " character" + (n === 1 ? "" : "s") + ". Check the text above and fix anything the camera got wrong, then press Look up.");
-    box.focus();
-  } catch (e) {
-    setOcrStatus("Couldn't read that image. The reader may be offline or blocked — you can still type the characters in.");
-  } finally {
-    ocrBusy = false; $("#photoBtn").disabled = false;
-  }
+  } finally { ocrReport = () => {}; }
 }
+// Hooks a "From a photo" button to its hidden file input and status line. onLines(lines, report)
+// puts the recognised text where that screen needs it. Returns the status setter.
+const photoBtns = [];
+function wirePhoto(btn, input, statusEl, onLines) {
+  photoBtns.push(btn);
+  const report = msg => { statusEl.hidden = !msg; statusEl.textContent = msg || ""; };
+  btn.addEventListener("click", () => input.click());
+  input.addEventListener("change", async e => {
+    const file = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!file || ocrBusy) return;
+    if (!/^image\//.test(file.type || "")) { toast("Choose an image file."); return; }
+    ocrBusy = true; photoBtns.forEach(b => b.disabled = true);
+    try {
+      const lines = await readHanFromImage(file, report);
+      if (!lines.length) { report("No Chinese characters found in that image. Try a clearer, straighter, well-lit photo."); return; }
+      onLines(lines, report);
+    } catch (err) {
+      report("Couldn't read that image. The reader may be offline or blocked — you can still type the characters in.");
+    } finally {
+      ocrBusy = false; photoBtns.forEach(b => b.disabled = false);
+    }
+  });
+  return report;
+}
+const hanCount = lines => lines.reduce((n, l) => n + [...l].length, 0);
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
 
 /* ================= toast ================= */
 let toastT = 0;
@@ -1246,9 +1436,26 @@ $("#quizBtn").addEventListener("click", () => {
 });
 $("#lookupBtn").addEventListener("click", doLookup);
 $("#addText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doLookup(); } });
-$("#clearBtn").addEventListener("click", () => { $("#addText").value = ""; setOcrStatus(""); $("#addText").focus(); });
-$("#photoBtn").addEventListener("click", () => $("#photoInput").click());
-$("#photoInput").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) runOCR(f); });
+const addPhotoStatus = wirePhoto($("#photoBtn"), $("#photoInput"), $("#ocrStatus"), (lines, report) => {
+  const box = $("#addText"), text = lines.join("\n");
+  box.value = box.value.trim() ? box.value.replace(/\s+$/, "") + "\n" + text : text;
+  report("Read " + plural(hanCount(lines), "character") + ". Check the text above and fix anything the camera got wrong, then press Look up.");
+  box.focus();
+});
+$("#clearBtn").addEventListener("click", () => { $("#addText").value = ""; addPhotoStatus(""); $("#addText").focus(); });
+$("#qsOpen").addEventListener("click", () => { setView("search"); setTimeout(() => $("#qsInput").focus(), 50); });
+$("#qsForm").addEventListener("submit", e => { e.preventDefault(); clearTimeout(qsTimer); runQuickSearch(); });
+let qsTimer = 0;
+$("#qsInput").addEventListener("input", e => {
+  if (e.isComposing) return; // wait for the IME to finish the character
+  clearTimeout(qsTimer); qsTimer = setTimeout(runQuickSearch, 250);
+});
+$("#qsInput").addEventListener("compositionend", () => { clearTimeout(qsTimer); qsTimer = setTimeout(runQuickSearch, 250); });
+wirePhoto($("#qsPhotoBtn"), $("#qsPhotoInput"), $("#qsOcrStatus"), (lines, report) => {
+  $("#qsInput").value = lines.join(" ");
+  report("Read " + plural(hanCount(lines), "character") + ". Fix anything the camera got wrong in the box above and search again.");
+  clearTimeout(qsTimer); runQuickSearch();
+});
 document.addEventListener("keydown", e => {
   if (prefs.view !== "study" || e.metaKey || e.ctrlKey || e.altKey || !$("#scriptModal").hidden) return;
   const tg = e.target; if (tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA" || tg.tagName === "SELECT" || tg.isContentEditable)) return;
