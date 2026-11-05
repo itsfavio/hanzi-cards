@@ -19,7 +19,8 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
 - **Paste an image.** Copy a screenshot or picture of characters and paste it with Ctrl/⌘ + V (or long-press → Paste on a phone) on the Add words tab or Quick search. It's read the same way as a photo.
 - **Quick search.** Look up any character, word or pinyin to see its readings, meanings and a character-by-character breakdown, without adding it to a chapter.
 - **Quick write.** Type a character, word or pinyin to watch its stroke order and practice tracing it, with its pinyin and meaning, without adding it to a chapter.
-- **Self-grading.** Mark cards "I know it" or "Still learning," then filter to just the ones you haven't learned yet.
+- **Spaced repetition.** Grade each card **Don't know it**, **Still learning** or **I know it**. Missed cards come back later in the same session, and each "I know it" spaces the next review further out (1, 3, 7, then 14 days). A card is only Known, and stops showing, after you recall it at every step.
+- **Active recall.** Stroke order stays hidden while you study. Tick **Show stroke order** to keep it open, or press **Peek strokes** on a card you're stuck on.
 
 ## How to use it
 
@@ -38,7 +39,15 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
    Or press **From a photo** and pick (or snap) a picture of your vocab list. The app reads the characters off it and puts them in the box for you to check and look up. You can also copy an image and paste it straight in: Ctrl/⌘ + V on a computer, or long-press the box and tap **Paste** on a phone.
 
    Everything shows up for review first. You can switch readings for characters with more than one (行 xíng / háng), edit meanings, or remove entries. Then press **Add**. Words already in the chapter are skipped.
-4. **Study.** On the **Study** tab, tap the card to turn it. Hit **Hear it** for pronunciation and use the stroke-order panel to watch or practice each character. Grade yourself as you go.
+4. **Study.** On the **Study** tab you get today's reviews plus any new cards (**Due**). Switch to **All** for extra practice; reviewing a card early doesn't move its schedule. Tap the card to turn it and **Hear it** for pronunciation, then grade yourself:
+
+   | Button | What happens |
+   | --- | --- |
+   | **Don't know it** | Starts the card's reviews over. It comes back after about 3 cards and needs "I know it" twice before it leaves the session. |
+   | **Still learning** | Moves the card one step back. It comes back after about 5 cards. |
+   | **I know it** | Schedules the next review: tomorrow, then 3, 7 and 14 days later. Recalling it once more after the 14-day gap makes it **Known**, and it stops showing. |
+
+   Stroke order is hidden so you practice recalling the character first. Tick **Show stroke order** to keep it open, or press **Peek strokes** for just the current card.
 5. **Manage.** The **Words** tab lists the whole chapter. Fix a pinyin or meaning inline, change a card's status, or delete cards.
 
 ### Keyboard shortcuts (Study tab)

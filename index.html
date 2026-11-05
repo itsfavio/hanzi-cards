@@ -161,6 +161,10 @@ main { min-width: 0; padding-block: 26px 60px; padding-left: max(16px, env(safe-
 .status-pill { font-family: var(--f-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
 .status-pill.s1 { border-color: var(--t4); color: var(--t4); }
 .status-pill.s2 { border-color: var(--ok); color: var(--ok); }
+.status-pill.s3 { border-color: var(--seal); color: var(--seal); }
+.bench.no-strokes { grid-template-columns: minmax(0, 1fr); }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
+.check input { width: 16px; height: 16px; margin: 0; accent-color: var(--seal); }
 .voice-note { font-size: 12.5px; color: var(--muted); text-align: center; }
 .keys { font-size: 12px; color: var(--muted); text-align: center; }
 kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--raised); }
@@ -369,7 +373,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 
       <!-- STUDY -->
       <section id="v-study">
-        <div class="bench">
+        <div class="bench" id="bench">
           <div class="study-col">
             <div class="study-bar">
               <div class="grp">
@@ -379,12 +383,13 @@ td.pc { width: 22%; } td.dc { width: 48%; }
                 </div>
               </div>
               <div class="grp">
-                <div class="seg" id="segFilter">
-                  <button data-v="all">All</button><button data-v="learn">Not known yet</button>
+                <div class="seg" id="segMode" title="Due: today's reviews and new cards. All: every card, for extra practice.">
+                  <button data-v="due">Due</button><button data-v="all">All</button>
                 </div>
                 <button class="btn ghost" id="shuffleBtn" aria-pressed="false" title="Shuffle">
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h2.5c3 0 4 8 7 8H14M2 12h2.5c1.3 0 2.2-1.4 3-3M10 5.5c.5-.9 1.1-1.5 2-1.5H14M12.5 2.5 14 4l-1.5 1.5M12.5 10.5 14 12l-1.5 1.5"/></svg>Shuffle
                 </button>
+                <label class="check"><input type="checkbox" id="strokeToggle">Show stroke order</label>
               </div>
             </div>
             <div class="progress" title="Known in this chapter"><i id="progBar"></i></div>
@@ -423,11 +428,13 @@ td.pc { width: 22%; } td.dc { width: 48%; }
             <div class="audio-row" id="audioRow">
               <button class="btn seal-btn" id="speakBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.4 3.8a6 6 0 0 1 0 8.4"/></svg>Hear it</button>
               <button class="btn" id="slowBtn" aria-pressed="false" title="Slower speech">Slow</button>
+              <button class="btn" id="peekBtn" aria-pressed="false" title="Show the stroke order for this card">Peek strokes</button>
             </div>
             <div class="voice-note" id="voiceNote" hidden></div>
             <div class="grade" id="gradeRow">
-              <button class="btn" id="learnBtn">Still learning</button>
-              <button class="btn primary" id="knowBtn">I know it</button>
+              <button class="btn danger" id="dontBtn" title="Couldn't recall or write it without help: starts its reviews over">Don't know it</button>
+              <button class="btn" id="learnBtn" title="Partly remembered: comes back later in this session">Still learning</button>
+              <button class="btn primary" id="knowBtn" title="Remembered it: next review is spaced further out">I know it</button>
             </div>
             <div class="keys"><kbd>Space</kbd> turn · <kbd>←</kbd> <kbd>→</kbd> cards · <kbd>S</kbd> speak · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sides</div>
           </div>
@@ -619,7 +626,8 @@ const SAMPLE = {
     ["喝茶", "", "hē chá", "to drink tea"]
   ].map((a, i) => ({ id: "x" + i, w: a[0], t: a[1], p: a[2], d: a[3], s: 0 }))
 };
-const prefs = Object.assign({ cur: null, front: 0, filter: "all", shuffle: false, slow: false, view: "study", script: null }, lsGet("zika.prefs", {}));
+const prefs = Object.assign({ cur: null, front: 0, mode: "due", strokes: false, shuffle: false, slow: false, view: "study", script: null }, lsGet("zika.prefs", {}));
+delete prefs.filter; // replaced by prefs.mode (spaced repetition)
 const isTrad = () => prefs.script === "trad";
 const disp = c => (isTrad() && c.t ? c.t : c.w);
 const otherForm = c => (c.t && c.t !== c.w ? (isTrad() ? c.w : c.t) : "");
@@ -627,6 +635,7 @@ const S = {
   chapters: lsGet("zika.chapters", {}),
   cloud: false, col: null,
   order: [], idx: 0, spin: 0,
+  sess: { done: new Set(), need: new Map() }, peek: null,
   pending: [], picks: [],
   confirm: null
 };
@@ -645,7 +654,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const writeQ = {};
 const deleting = new Set();
 function cleanChapter(ch) {
-  return { name: ch.name, created: ch.created || Date.now(), cards: ch.cards.map(c => ({ id: c.id, w: c.w, t: c.t || "", p: c.p || "", d: c.d || "", s: c.s || 0 })) };
+  return { name: ch.name, created: ch.created || Date.now(), cards: ch.cards.map(c => ({ id: c.id, w: c.w, t: c.t || "", p: c.p || "", d: c.d || "", s: c.s || 0, b: c.b || 0, due: c.due || 0 })) };
 }
 function saveChapter(ch) {
   if (ch.sample) return;
@@ -724,7 +733,7 @@ async function connect() {
     S.cloud = false; setSync(false, "Offline, saving in this browser");
   });
 }
-function sig() { const ch = current(); return JSON.stringify([chapterList().map(c => [c.id, c.name, c.cards.length]), ch.id, ch.cards.map(c => [c.id, c.p, c.d, c.s])]); }
+function sig() { const ch = current(); return JSON.stringify([chapterList().map(c => [c.id, c.name, c.cards.length]), ch.id, ch.cards.map(c => [c.id, c.p, c.d, c.s, c.b, c.due])]); }
 
 /* ================= rendering: rail + head ================= */
 function renderRail() {
@@ -744,15 +753,16 @@ function renderHead() {
   const ch = current();
   $("#chapTitle").textContent = ch.name;
   $("#headEyebrow").textContent = ch.sample ? "Example deck" : "Chapter";
-  const known = ch.cards.filter(c => c.s === 2).length, learning = ch.cards.filter(c => c.s === 1).length;
+  const now = Date.now(), count = f => ch.cards.filter(f).length;
   const meta = $("#headMeta"); meta.textContent = "";
-  meta.append(el("span", "mono", ch.cards.length + " cards"), el("span", "mono", known + " known"), el("span", "mono", learning + " still learning"));
+  meta.append(el("span", "mono", ch.cards.length + " cards"), el("span", "mono", count(c => isDue(c, now)) + " due today"),
+    el("span", "mono", count(c => c.s === ST.KNOWN) + " known"), el("span", "mono", count(c => c.s === ST.DONT) + " don't know"));
   $("#sampleBanner").hidden = !ch.sample;
   const act = $("#headActions"); act.textContent = "";
   if (!ch.sample) {
     const rn = el("button", "btn ghost", "Rename"); rn.addEventListener("click", () => { S.confirm = "rename"; renderConfirm(); });
     const del = el("button", "btn ghost danger", "Delete chapter"); del.addEventListener("click", () => { S.confirm = "delete"; renderConfirm(); });
-    if (ch.cards.some(c => c.s)) { const rs = el("button", "btn ghost", "Reset progress"); rs.addEventListener("click", () => { S.confirm = "reset"; renderConfirm(); }); act.append(rs); }
+    if (ch.cards.some(c => c.s || c.b)) { const rs = el("button", "btn ghost", "Reset progress"); rs.addEventListener("click", () => { S.confirm = "reset"; renderConfirm(); }); act.append(rs); }
     act.append(rn, del);
   }
   renderConfirm();
@@ -776,8 +786,8 @@ function renderConfirm() {
     row.append(ok, cancel);
   }
   if (S.confirm === "reset") {
-    row.append(el("span", null, "Mark every card in this chapter as new again?"));
-    const ok = el("button", "btn primary", "Reset"); ok.addEventListener("click", () => { ch.cards.forEach(c => c.s = 0); saveChapter(ch); S.confirm = null; renderAll(); });
+    row.append(el("span", null, "Mark every card in this chapter as new again? Their review schedule starts over."));
+    const ok = el("button", "btn primary", "Reset"); ok.addEventListener("click", () => { ch.cards.forEach(c => setStatus(c, ST.NEW)); saveChapter(ch); S.confirm = null; renderAll(); });
     row.append(ok, cancel);
   }
   box.append(row);
@@ -814,44 +824,89 @@ function renderAll(keepPos) {
   setView(prefs.view);
 }
 
+/* ================= spaced repetition ================= */
+// Each card: s = status (ST), b = spaced recalls passed so far, due = when it's next shown (ms; 0 = now).
+// "I know it" climbs a ladder of growing gaps; it only counts once the card is due, so reviewing early can't
+// skip the spacing. One more "I know it" after the last gap confirms the card as Known and it stops showing.
+// "Still learning" steps a card down the ladder; "Don't know it" restarts it. Both bring it back this session.
+const ST = { NEW: 0, LEARNING: 1, KNOWN: 2, DONT: 3 };
+const ST_LABEL = ["New", "Learning", "Known", "Don't know"];
+const LADDER_DAYS = [1, 3, 7, 14];
+const GAP = { dont: 3, learn: 5, again: 6 }; // cards shown before it comes back in the same session
+const DAY = 864e5;
+const dayStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const isDue = (c, now) => c.s !== ST.KNOWN && (c.due || 0) <= now;
+// Manual status change (Words tab, reset): puts the schedule in a matching state.
+function setStatus(c, s) {
+  c.s = s; c.due = 0;
+  if (s === ST.KNOWN) c.b = LADDER_DAYS.length;
+  else if (s === ST.NEW || s === ST.DONT) c.b = 0;
+}
+function whenText(due) {
+  const days = Math.round((dayStart(due) - dayStart(Date.now())) / DAY);
+  if (days <= 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days < 7) return "in " + days + " days";
+  return "on " + new Date(due).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+function scheduleNote(c) {
+  if (c.s === ST.KNOWN) return "Known: no more reviews";
+  return "Step " + Math.min(c.b || 0, LADDER_DAYS.length) + " of " + (LADDER_DAYS.length + 1) + " · due " + whenText(c.due || 0);
+}
+
 /* ================= study ================= */
+// S.order is this session's queue; the card shown is always S.order[0]. S.sess remembers, until the queue is
+// rebuilt from scratch, which cards are finished and how many more "I know it"s a missed card needs.
+function shuffled(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function buildOrder(keepPos) {
+  const ch = current(), now = Date.now();
+  if (!keepPos) S.sess = { done: new Set(), need: new Map() };
+  const ids = ch.cards.filter(c => !S.sess.done.has(c.id) && (prefs.mode === "all" || isDue(c, now))).map(c => c.id);
+  const keep = keepPos ? S.order.filter(i => ids.includes(i)) : [];
+  const rest = ids.filter(i => !keep.includes(i));
+  S.order = keep.concat(prefs.shuffle ? shuffled(rest) : rest);
+  S.idx = 0;
+  renderStudyBar();
+}
+function renderStudyBar() {
   const ch = current();
-  const curId = keepPos && S.order[S.idx];
-  let ids = ch.cards.filter(c => prefs.filter === "all" || c.s !== 2).map(c => c.id);
-  if (prefs.shuffle) {
-    const old = keepPos ? S.order.filter(i => ids.includes(i)) : [];
-    const rest = ids.filter(i => !old.includes(i));
-    for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
-    ids = old.concat(rest);
-  }
-  S.order = ids;
-  if (curId && ids.includes(curId)) S.idx = ids.indexOf(curId);
-  if (S.idx >= ids.length) S.idx = Math.max(0, ids.length - 1);
   for (const b of $$("#segFront button")) b.setAttribute("aria-pressed", +b.dataset.f === prefs.front ? "true" : "false");
-  for (const b of $$("#segFilter button")) b.setAttribute("aria-pressed", b.dataset.v === prefs.filter ? "true" : "false");
+  for (const b of $$("#segMode button")) b.setAttribute("aria-pressed", b.dataset.v === prefs.mode ? "true" : "false");
   $("#shuffleBtn").setAttribute("aria-pressed", prefs.shuffle ? "true" : "false");
   $("#slowBtn").setAttribute("aria-pressed", prefs.slow ? "true" : "false");
-  const known = ch.cards.filter(c => c.s === 2).length;
+  $("#strokeToggle").checked = !!prefs.strokes;
+  const known = ch.cards.filter(c => c.s === ST.KNOWN).length;
   $("#progBar").style.width = ch.cards.length ? (known / ch.cards.length * 100) + "%" : "0";
 }
-function cardAt() { const ch = current(); const id = S.order[S.idx]; return ch.cards.find(c => c.id === id) || null; }
+function cardAt() { const ch = current(); const id = S.order[0]; return ch.cards.find(c => c.id === id) || null; }
 let lastCardId = null;
 function showCard() {
   const ch = current(); const card = cardAt();
   const empty = $("#studyEmpty");
   const has = !!card;
-  $("#studyCard").hidden = !has; $("#cardNav").hidden = !has; $("#gradeRow").hidden = !has; $("#audioRow").hidden = !has; $("#strokePanel").hidden = !has;
+  $("#studyCard").hidden = !has; $("#cardNav").hidden = !has; $("#gradeRow").hidden = !has; $("#audioRow").hidden = !has;
+  if (has && card.id !== lastCardId) S.peek = null;
+  applyStrokeVisibility(has);
   $(".keys").hidden = !has;
   empty.hidden = has; empty.textContent = "";
   if (!has) {
     const box = el("div", "empty"); box.append(el("div", "big", "空"));
+    const btn = (label, fn) => { const b = el("button", "btn primary", label); b.addEventListener("click", fn); box.append(b); };
+    const practiceAll = () => { prefs.mode = "all"; savePrefs(); lastCardId = null; buildOrder(); showCard(); };
+    const upcoming = ch.cards.filter(c => c.s !== ST.KNOWN && (c.due || 0) > Date.now()).sort((a, b) => a.due - b.due);
+    const nextLine = upcoming.length ? ` Next review ${whenText(upcoming[0].due)} (${upcoming.filter(c => dayStart(c.due) === dayStart(upcoming[0].due)).length} card${upcoming.length === 1 ? "" : "s"}).` : "";
     if (!ch.cards.length) {
       box.append(el("div", null, "No cards in this chapter yet."));
-      const b = el("button", "btn primary", "Add words"); b.addEventListener("click", () => setView("add")); box.append(b);
+      btn("Add words", () => setView("add"));
+    } else if (prefs.mode === "all") {
+      box.append(el("div", null, "Round complete. You've been through every card."));
+      btn("Start again", () => { lastCardId = null; buildOrder(); showCard(); });
+    } else if (ch.cards.every(c => c.s === ST.KNOWN)) {
+      box.append(el("div", null, "Every card here is Known. Nothing left to review."));
+      btn("Practice all anyway", practiceAll);
     } else {
-      box.append(el("div", null, "You've marked every card here as known."));
-      const b = el("button", "btn primary", "Study all cards"); b.addEventListener("click", () => { prefs.filter = "all"; savePrefs(); buildOrder(); showCard(); }); box.append(b);
+      box.append(el("div", null, (S.sess.done.size ? "Done for today. " : "Nothing due today.") + nextLine));
+      btn("Practice all anyway", practiceAll);
     }
     empty.append(box); lastCardId = null; return;
   }
@@ -872,13 +927,11 @@ function showCard() {
   $("#fDefRest").textContent = senses.slice(1).join("; ");
   const mwEl = $("#fMw"); mwEl.textContent = "";
   if (mw) { mwEl.append("Measure word: "); mwEl.append(el("b", null, mw)); }
-  const label = ["New", "Learning", "Known"][card.s || 0];
-  for (const p of $$("[data-st]")) { p.textContent = label; p.className = "status-pill s" + (card.s || 0); }
-  for (const p of $$("[data-pos]")) p.textContent = (S.idx + 1) + " / " + S.order.length;
-  $("#counter").textContent = (S.idx + 1) + " / " + S.order.length;
-  $("#prevBtn").disabled = S.idx === 0; $("#nextBtn").disabled = S.idx >= S.order.length - 1;
-  $("#learnBtn").setAttribute("aria-pressed", card.s === 1 ? "true" : "false");
-  $("#knowBtn").setAttribute("aria-pressed", card.s === 2 ? "true" : "false");
+  for (const p of $$("[data-st]")) { p.textContent = ST_LABEL[card.s || 0]; p.className = "status-pill s" + (card.s || 0); p.title = scheduleNote(card); }
+  const left = S.order.length + " left";
+  for (const p of $$("[data-pos]")) p.textContent = left;
+  $("#counter").textContent = left;
+  $("#prevBtn").disabled = $("#nextBtn").disabled = S.order.length < 2;
   if (card.id !== lastCardId) { lastCardId = card.id; setFace(prefs.front, true); studyStrokes.show(disp(card)); }
   else updateFaceBtns();
 }
@@ -903,20 +956,52 @@ function sizePrism() {
   $$(".face").forEach(f => { f.style.transform = `rotateY(${(+f.dataset.i) * 120}deg) translateZ(${r}px)`; });
   applySpin(true);
 }
-function go(delta) {
-  const n = S.idx + delta; if (n < 0 || n >= S.order.length) return;
-  S.idx = n; showCard();
+// Stroke order stays hidden while studying (active recall) unless "Show stroke order" is ticked or you peek.
+function applyStrokeVisibility(has) {
+  const card = has ? cardAt() : null;
+  const show = !!card && (prefs.strokes || S.peek === card.id);
+  $("#strokePanel").hidden = !show;
+  $("#bench").classList.toggle("no-strokes", !show);
+  $("#peekBtn").hidden = !!prefs.strokes;
+  $("#peekBtn").setAttribute("aria-pressed", card && S.peek === card.id ? "true" : "false");
 }
-function grade(s) {
-  const ch = current(); const card = cardAt(); if (!card) return;
-  card.s = s; saveChapter(ch);
-  renderRail(); renderHead();
-  const atEnd = S.idx >= S.order.length - 1;
-  if (prefs.filter === "learn" && s === 2) {
-    S.order.splice(S.idx, 1); if (S.idx >= S.order.length) S.idx = Math.max(0, S.order.length - 1);
-    lastCardId = null; buildOrder(true); showCard();
-  } else if (!atEnd) { buildOrder(true); go(1); }
-  else { buildOrder(true); showCard(); toast("End of the chapter. Nice work."); }
+// Prev/Next browse without grading: the queue rotates, so a skipped card comes round again.
+function go(delta) {
+  if (S.order.length < 2) return;
+  if (delta > 0) S.order.push(S.order.shift()); else S.order.unshift(S.order.pop());
+  showCard();
+}
+function grade(kind) {
+  const ch = current(), card = cardAt(); if (!card) return;
+  const now = Date.now(), wasDue = isDue(card, now), need = S.sess.need.get(card.id) || 0;
+  let back = 0, msg = "";
+  if (kind === "dont") {
+    card.s = ST.DONT; card.b = 0; card.due = 0;
+    S.sess.need.set(card.id, 2); back = GAP.dont;
+    msg = "Starting over. It'll come back soon: get it right twice to move on.";
+  } else if (kind === "learn") {
+    card.s = ST.LEARNING; card.b = Math.max(0, (card.b || 0) - 1); card.due = 0;
+    S.sess.need.set(card.id, Math.max(need, 1)); back = GAP.learn;
+    msg = "It'll come back later in this session.";
+  } else if (need > 1) {
+    S.sess.need.set(card.id, need - 1); back = GAP.again;
+    msg = "Good. Once more later to be sure.";
+  } else {
+    S.sess.need.delete(card.id); S.sess.done.add(card.id);
+    if (!wasDue) msg = card.s === ST.KNOWN ? "Still known." : "Not due yet, so its schedule stays the same.";
+    else if ((card.b || 0) >= LADDER_DAYS.length) { card.s = ST.KNOWN; card.due = 0; msg = "Confirmed. It's Known now and won't be asked again."; }
+    else {
+      const days = LADDER_DAYS[card.b || 0];
+      card.b = (card.b || 0) + 1; card.s = ST.LEARNING; card.due = dayStart(now) + days * DAY;
+      msg = "Next review " + whenText(card.due) + ".";
+    }
+  }
+  saveChapter(ch);
+  S.order.shift();
+  if (back) S.order.splice(Math.min(back, S.order.length), 0, card.id);
+  lastCardId = null; S.peek = null;
+  renderRail(); renderHead(); renderStudyBar(); showCard();
+  toast(msg);
 }
 
 /* ================= speech ================= */
@@ -972,7 +1057,7 @@ function createStrokePanel(root) {
     hw.textContent = ""; char = c; writer = null; setQuizzing(false);
     if (typeof HanziWriter === "undefined") { info.textContent = "Stroke animation couldn't load."; return; }
     const size = Math.floor(hw.clientWidth || 0);
-    if (!size) return; // hidden for now; the ResizeObserver mounts it once it has a size
+    if (!size) { boxW = 0; return; } // hidden for now; the ResizeObserver mounts it once it has a size
     boxW = size;
     info.textContent = "Loading strokes…";
     writer = HanziWriter.create(hw, c, {
@@ -985,18 +1070,19 @@ function createStrokePanel(root) {
       onLoadCharDataError: () => { if (char === c) info.textContent = "No stroke data for " + c + "."; }
     });
   }
-  function markTab(c) { for (const b of $$("button", tabs)) b.setAttribute("aria-pressed", b.textContent === c ? "true" : "false"); }
+  // By position, not character, so a repeated character (谢谢) highlights only the tab you chose.
+  function markTab(i) { $$("button", tabs).forEach((b, k) => b.setAttribute("aria-pressed", k === i ? "true" : "false")); }
   // Shows the Han characters of `text`, one tab each (tabs hidden for a single character).
   function show(text) {
     tabs.textContent = "";
     const chars = [...text].filter(c => HAN_RE.test(c));
-    for (const c of chars) {
+    chars.forEach((c, i) => {
       const b = el("button", null, c); b.type = "button"; b.setAttribute("aria-label", "Stroke order for " + c);
-      b.addEventListener("click", () => { mount(c); markTab(c); if (writer) writer.animateCharacter(); });
+      b.addEventListener("click", () => { mount(c); markTab(i); if (writer) writer.animateCharacter(); });
       tabs.append(b);
-    }
+    });
     tabs.hidden = chars.length < 2;
-    if (chars.length) { mount(chars[0]); markTab(chars[0]); }
+    if (chars.length) { mount(chars[0]); markTab(0); }
     else { hw.textContent = ""; char = null; writer = null; info.textContent = "No characters to draw."; }
   }
   $("[data-play]", root).addEventListener("click", () => {
@@ -1044,9 +1130,10 @@ function renderList() {
     if (ch.sample) { ip.readOnly = true; idf.readOnly = true; }
     ip.addEventListener("change", () => { c.p = ip.value.trim(); saveChapter(ch); });
     idf.addEventListener("change", () => { c.d = idf.value.trim(); saveChapter(ch); });
-    const tds = el("td"); const pill = el("button", "status-pill s" + (c.s || 0), ["New", "Learning", "Known"][c.s || 0]);
-    pill.style.cursor = ch.sample ? "default" : "pointer"; pill.title = "Click to change";
-    pill.addEventListener("click", () => { if (ch.sample) return; c.s = ((c.s || 0) + 1) % 3; saveChapter(ch); renderList(); renderHead(); buildOrder(true); });
+    const tds = el("td"); const pill = el("button", "status-pill s" + (c.s || 0), ST_LABEL[c.s || 0]);
+    pill.style.cursor = ch.sample ? "default" : "pointer"; pill.title = scheduleNote(c) + (ch.sample ? "" : " · click to change");
+    const CYCLE = [ST.NEW, ST.DONT, ST.LEARNING, ST.KNOWN];
+    pill.addEventListener("click", () => { if (ch.sample) return; setStatus(c, CYCLE[(CYCLE.indexOf(c.s || 0) + 1) % CYCLE.length]); saveChapter(ch); renderList(); renderHead(); buildOrder(true); });
     tds.append(pill);
     const tda = el("td"); tda.style.whiteSpace = "nowrap";
     const sp = el("button", "icon-btn"); sp.innerHTML = ICON_SPK; sp.setAttribute("aria-label", "Hear " + c.w); sp.addEventListener("click", () => speak(c.w));
@@ -1549,14 +1636,17 @@ $("#prism").addEventListener("click", turn);
 $("#prism").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); turn(); } });
 for (const b of $$("#faceBtns button")) b.addEventListener("click", () => setFace(+b.dataset.f));
 for (const b of $$("#segFront button")) b.addEventListener("click", () => { prefs.front = +b.dataset.f; savePrefs(); buildOrder(true); setFace(prefs.front, false); });
-for (const b of $$("#segFilter button")) b.addEventListener("click", () => { prefs.filter = b.dataset.v; savePrefs(); S.idx = 0; lastCardId = null; buildOrder(); showCard(); });
-$("#shuffleBtn").addEventListener("click", () => { prefs.shuffle = !prefs.shuffle; savePrefs(); S.idx = 0; lastCardId = null; buildOrder(); showCard(); });
+for (const b of $$("#segMode button")) b.addEventListener("click", () => { prefs.mode = b.dataset.v; savePrefs(); lastCardId = null; buildOrder(); showCard(); });
+$("#shuffleBtn").addEventListener("click", () => { prefs.shuffle = !prefs.shuffle; savePrefs(); lastCardId = null; buildOrder(); showCard(); });
+$("#strokeToggle").addEventListener("change", e => { prefs.strokes = e.target.checked; savePrefs(); applyStrokeVisibility(!!cardAt()); });
+$("#peekBtn").addEventListener("click", () => { const c = cardAt(); if (!c) return; S.peek = S.peek === c.id ? null : c.id; applyStrokeVisibility(true); });
+$("#dontBtn").addEventListener("click", () => grade("dont"));
 $("#slowBtn").addEventListener("click", () => { prefs.slow = !prefs.slow; savePrefs(); $("#slowBtn").setAttribute("aria-pressed", prefs.slow ? "true" : "false"); const c = cardAt(); if (c) speak(c.w); });
 $("#prevBtn").addEventListener("click", () => go(-1));
 $("#nextBtn").addEventListener("click", () => go(1));
 $("#speakBtn").addEventListener("click", () => { const c = cardAt(); if (c) speak(c.w); });
-$("#learnBtn").addEventListener("click", () => grade(1));
-$("#knowBtn").addEventListener("click", () => grade(2));
+$("#learnBtn").addEventListener("click", () => grade("learn"));
+$("#knowBtn").addEventListener("click", () => grade("know"));
 $("#lookupBtn").addEventListener("click", doLookup);
 $("#addText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doLookup(); } });
 const addPhoto = wirePhoto({ pickBtn: $("#photoBtn"), input: $("#photoInput"), status: $("#ocrStatus"), onLines: (lines, report) => {
