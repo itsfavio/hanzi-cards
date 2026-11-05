@@ -283,6 +283,15 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); width: 100%; max-width: 560px; padding: 26px; display: flex; flex-direction: column; gap: 10px; max-height: 100%; overflow-y: auto; }
 .modal h2 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
 .modal p { margin: 0; color: var(--muted); font-size: 14px; }
+.news-list { margin: 6px 0 4px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.news-list li { border-left: 3px solid var(--seal); padding: 2px 0 2px 12px; }
+.news-list b { display: block; font-size: 15px; }
+.news-list span { color: var(--muted); font-size: 14px; }
+.modal .news-foot { color: var(--ink); }
+.modal-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.news-link { margin-top: auto; align-self: flex-start; border: 0; background: none; padding: 4px 0; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.news-link:hover { color: var(--ink); }
+.news-link + .sync { margin-top: 0; }
 .script-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 8px; }
 .script-choices button { border: 1px solid var(--line); background: var(--raised); border-radius: 10px; padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 4px; }
 .script-choices button:hover { border-color: var(--seal); }
@@ -344,6 +353,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
     <button class="btn rail-search" id="qsOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.3"/><path d="m10.2 10.2 3.3 3.3"/></svg>Quick search</button>
     <button class="btn rail-search" id="qwOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Quick write</button>
     </div>
+    <button class="news-link" id="newsOpen" type="button">What's new</button>
     <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Saved in this browser</span></div>
   </nav>
 
@@ -540,6 +550,15 @@ td.pc { width: 22%; } td.dc { width: 48%; }
     <button class="btn ghost" data-speak type="button" aria-label="Hear this character"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg></button>
   </div>
 </template>
+<div class="modal-back" id="newsModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newsTitle">
+    <div class="eyebrow" id="newsVersion"></div>
+    <h2 id="newsTitle">What's new</h2>
+    <ul class="news-list" id="newsList"></ul>
+    <p class="news-foot" id="newsFoot"></p>
+    <div class="modal-actions"><button class="btn primary" id="newsClose" type="button">Got it</button></div>
+  </div>
+</div>
 <div class="modal-back" id="scriptModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="smTitle">
     <div class="eyebrow">Before you start</div>
@@ -1680,12 +1699,12 @@ const qsPhoto = wirePhoto({ pickBtn: $("#qsPhotoBtn"), input: $("#qsPhotoInput")
 const PHOTO_TARGET = { add: addPhoto, search: qsPhoto };
 document.addEventListener("paste", e => {
   const target = PHOTO_TARGET[prefs.view];
-  if (!target || !$("#scriptModal").hidden) return;
+  if (!target || modalOpen()) return;
   const img = pastedImage(e); if (!img) return;
   e.preventDefault(); target.readImage(img);
 });
 document.addEventListener("keydown", e => {
-  if (prefs.view !== "study" || e.metaKey || e.ctrlKey || e.altKey || !$("#scriptModal").hidden) return;
+  if (prefs.view !== "study" || e.metaKey || e.ctrlKey || e.altKey || modalOpen()) return;
   const tg = e.target; if (tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA" || tg.tagName === "SELECT" || tg.isContentEditable)) return;
   if (!cardAt()) return;
   if (e.key === " ") { if (tg && tg.tagName === "BUTTON" && tg.id !== "prism") return; e.preventDefault(); turn(); }
@@ -1720,9 +1739,47 @@ function setScript(s, remember) {
 for (const b of $$("#segScript button")) b.addEventListener("click", () => { setScript(b.dataset.s); toast(b.dataset.s === "trad" ? "Showing traditional characters" : "Showing simplified characters"); });
 for (const b of $$("#scriptModal button")) b.addEventListener("click", () => setScript(b.dataset.s));
 
+/* ================= what's new ================= */
+// Shown once to returning users after an update (new users skip it). For the next release, bump
+// `version` and replace `items`; everyone who saw an older version gets it once.
+const WHATS_NEW = {
+  version: "1.1",
+  items: [
+    ["Quick search", "A new way to look up any character, word or pinyin fast."],
+    ["Quick write", "Quickly learn the stroke order for any character."],
+    ["Study mode update", "Stroke order can stay hidden while you practice active recall, to strengthen learning. New buttons use spaced repetition to help you learn a new chapter."],
+    ["Paste an image", "Copy a screenshot or picture of characters and paste it (Ctrl/⌘ + V, or long-press → Paste on a phone) on Add words or Quick search to read the characters."],
+    ["Better character recognition", "Photos and screenshots are read much more accurately, including textbook pages and neat handwriting."]
+  ],
+  foot: "More coming soon, stay tuned! Let me know your thoughts in class if you have any suggestions."
+};
+const modalOpen = () => $$(".modal-back").some(m => !m.hidden);
+let newsReturnFocus = null;
+function openNews() {
+  $("#newsVersion").textContent = "Version " + WHATS_NEW.version;
+  const ul = $("#newsList"); ul.textContent = "";
+  for (const [title, text] of WHATS_NEW.items) { const li = el("li"); li.append(el("b", null, title), el("span", null, text)); ul.append(li); }
+  $("#newsFoot").textContent = WHATS_NEW.foot;
+  newsReturnFocus = document.activeElement;
+  $("#newsModal").hidden = false;
+  setTimeout(() => $("#newsClose").focus(), 50);
+}
+function closeNews() {
+  $("#newsModal").hidden = true;
+  lsSet("zika.seenVersion", WHATS_NEW.version);
+  if (newsReturnFocus && newsReturnFocus.focus) newsReturnFocus.focus();
+}
+$("#newsOpen").addEventListener("click", openNews);
+$("#newsClose").addEventListener("click", closeNews);
+$("#newsModal").addEventListener("click", e => { if (e.target === e.currentTarget) closeNews(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#newsModal").hidden) closeNews(); });
+
 /* ================= boot ================= */
 applyScriptUI();
-if (!prefs.script) { $("#scriptModal").hidden = false; setTimeout(() => { const b = $("#scriptModal button"); if (b) b.focus(); }, 50); }
+if (!prefs.script) {
+  $("#scriptModal").hidden = false; setTimeout(() => { const b = $("#scriptModal button"); if (b) b.focus(); }, 50);
+  lsSet("zika.seenVersion", WHATS_NEW.version); // brand-new users: everything is new, skip the update notes
+} else if (lsGet("zika.seenVersion", null) !== WHATS_NEW.version) openNews();
 renderAll();
 sizePrism();
 connect();
