@@ -19,7 +19,7 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
 - **Paste an image.** Copy a screenshot or picture of characters and paste it with Ctrl/⌘ + V (or long-press → Paste on a phone) on the Add words tab or Quick search. It's read the same way as a photo.
 - **Quick search.** Look up any character, word or pinyin to see its readings, meanings and a character-by-character breakdown, without adding it to a chapter.
 - **Quick write.** Type a character, word or pinyin to watch its stroke order and practice tracing it, with its pinyin and meaning, without adding it to a chapter.
-- **Instructor mode.** Teach a chapter's new words to a class: simplified and traditional side by side, then both stroke orders animating together (looping until you move on), then pinyin and meaning. Click or press → / Space to advance, and use **Full screen** for a projector.
+- **Instructor mode.** Teach a chapter's new words to a class: simplified and traditional side by side, then pinyin, then both stroke orders animating together (looping until you move on), then the meaning. Click or press → / Space to advance, and use **Full screen** for a projector.
 - **Spaced repetition.** Grade each card **Don't know it**, **Still learning** or **I know it**. Missed cards come back later in the same session, and each "I know it" spaces the next review further out (1, 3, 7, then 14 days). A card is only Known, and stops showing, after you recall it at every step.
 - **Active recall.** Stroke order stays hidden while you study. Tick **Show stroke order** to keep it open, or press **Peek strokes** on a card you're stuck on.
 

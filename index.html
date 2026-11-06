@@ -602,7 +602,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
           <div>
             <div class="eyebrow">Instructor mode · 教学</div>
             <h1 id="teachTitle">—</h1>
-            <div class="head-meta">Each word: characters, stroke order, pinyin, meaning. Click the slide, or press → / Space, to go on.</div>
+            <div class="head-meta">Each word: characters, pinyin, stroke order, meaning. Click the slide, or press → / Space, to go on.</div>
           </div>
         </div>
         <div class="teach-stage" id="teachStage">
@@ -1232,7 +1232,7 @@ function createStrokePanel(root) {
   return panel;
 }
 const studyStrokes = createStrokePanel($("#strokePanel"));
-function remountForTheme() { for (const p of strokePanels) p.remount(); if (prefs.view === "teach" && T.slide === 1) renderTeach(); }
+function remountForTheme() { for (const p of strokePanels) p.remount(); if (prefs.view === "teach" && teachKind() === "strokes") renderTeach(); }
 
 /* ================= word list ================= */
 function renderList() {
@@ -1843,10 +1843,12 @@ for (const b of $$("#segScript button")) b.addEventListener("click", () => { set
 for (const b of $$("#scriptModal button")) b.addEventListener("click", () => setScript(b.dataset.s));
 
 /* ================= instructor mode ================= */
-// Presents the current chapter to a class, 4 slides per word: both character sets side by side, both
-// stroke orders animating together (looping until you move on), pinyin, then meaning. No grading.
+// Presents the current chapter to a class, 4 slides per word: both character sets side by side, pinyin,
+// both stroke orders animating together (looping until you move on), then meaning. No grading.
+// To reorder the slides, reorder this list; T.slide is an index into it.
 const T = { chapter: null, idx: 0, slide: 0, run: 0 };
-const TEACH_SLIDES = ["Characters", "Stroke order", "Pinyin", "Meaning"];
+const TEACH_SLIDES = [["chars", "Characters"], ["pinyin", "Pinyin"], ["strokes", "Stroke order"], ["meaning", "Meaning"]];
+const teachKind = () => TEACH_SLIDES[T.slide][0];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // Traditional is stored empty when it's the same as simplified (CC-CEDICT data), so "same" is exact.
 const tradOf = c => (c.t && c.t !== c.w ? c.t : "");
@@ -1908,13 +1910,14 @@ function renderTeach() {
   }
   const card = cards[T.idx], simp = card.w, trad = tradOf(card);
   const presenting = $("#teachStage").classList.contains("presenting");
-  if (T.slide === 0 || T.slide === 1) {
+  const kind = teachKind();
+  if (kind === "chars" || kind === "strokes") {
     const full = slide.clientWidth || 600, n = [...simp].filter(c => HAN_RE.test(c)).length || 1;
     // Side by side when the grids still get a usable size; otherwise (long word, narrow screen) stack them.
-    const sideBySide = trad && (T.slide === 0 || (full - 24) / 2 / n >= 80);
+    const sideBySide = trad && (kind === "chars" || (full - 24) / 2 / n >= 80);
     const wrap = sideBySide ? el("div", "teach-pair") : el("div", "teach-col teach-stack");
     slide.append(wrap);
-    if (T.slide === 0) {
+    if (kind === "chars") {
       if (trad) wrap.append(teachCol(TAG_S, teachBig(simp, "sc-s")), teachCol(TAG_T, teachBig(trad, "sc-t")));
       else wrap.append(teachCol(TAG_SAME, teachBig(simp, "sc-s")));
     } else {
@@ -1925,7 +1928,7 @@ function renderTeach() {
       for (const [text, tag] of sets) { const g = teachGrids(text, colW, maxSize); groups.push(g.writers); wrap.append(teachCol(tag, g.row)); }
       loopStrokes(groups, T.run);
     }
-  } else if (T.slide === 2) {
+  } else if (kind === "pinyin") {
     const pin = el("div", "teach-pin");
     (card.p || "").split(/\s+/).filter(Boolean).forEach((s, k) => { if (k) pin.append(" "); pin.append(el("span", "tone" + toneOf(s), s)); });
     if (!card.p) pin.append(el("span", "tone5", "—"));
@@ -1937,9 +1940,9 @@ function renderTeach() {
     if (mw) { const m = el("div", "mw"); m.append("Measure word: ", el("b", null, mw)); slide.append(m); }
   }
   $("#teachWhere").innerHTML = "";
-  $("#teachWhere").append(el("span", null, `Word ${T.idx + 1} / ${cards.length}`), el("span", "lbl-long", " · " + TEACH_SLIDES[T.slide]));
+  $("#teachWhere").append(el("span", null, `Word ${T.idx + 1} / ${cards.length}`), el("span", "lbl-long", " · " + TEACH_SLIDES[T.slide][1]));
   const dots = $("#teachDots"); dots.textContent = "";
-  TEACH_SLIDES.forEach((name, i) => { const d = el("i", i === T.slide ? "on" : null); d.title = name; dots.append(d); });
+  TEACH_SLIDES.forEach(([, name], i) => { const d = el("i", i === T.slide ? "on" : null); d.title = name; dots.append(d); });
   $("#teachPrev").disabled = T.idx === 0 && T.slide === 0;
   $("#teachNext").disabled = T.idx === cards.length - 1 && T.slide === TEACH_SLIDES.length - 1;
 }
@@ -2007,7 +2010,7 @@ document.addEventListener("keydown", e => {
 let teachW = 0;
 new ResizeObserver(entries => {
   const w = Math.round(entries[0].contentRect.width);
-  if (Math.abs(w - teachW) > 20) { teachW = w; if (prefs.view === "teach" && T.slide === 1) renderTeach(); }
+  if (Math.abs(w - teachW) > 20) { teachW = w; if (prefs.view === "teach" && teachKind() === "strokes") renderTeach(); }
 }).observe($("#teachSlide"));
 
 /* ================= what's new ================= */
@@ -2016,7 +2019,7 @@ new ResizeObserver(entries => {
 const WHATS_NEW = {
   version: "1.2",
   items: [
-    ["Instructor mode", "Teach a chapter's new vocab to a class: simplified and traditional side by side, then both stroke orders animating together, then pinyin and meaning. Has a full screen view for projecting."],
+    ["Instructor mode", "Teach a chapter's new vocab to a class: simplified and traditional side by side, then pinyin, then both stroke orders animating together, then the meaning. Has a full screen view for projecting."],
     ["Bug fixes", "Small fixes and improvements."]
   ],
   foot: "More coming soon, stay tuned! Let me know your thoughts in class if you have any suggestions."
