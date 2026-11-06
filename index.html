@@ -26,6 +26,7 @@ img{max-width:100%}
   --seal: #B5302A;
   --seal-ink: #FFFFFF;
   --jade: #1E7A6A; --jade-2: #3BAA8E; --jade-ink: #FFFFFF;
+  --lacquer: #17130F; --lacquer-2: #2D241D; --enamel: #F4ECDC; --gold: #B8975A;
   --ok: #2C7447;
   --t1: #C33A30; --t2: #2B8148; --t3: #2E5FB3; --t4: #7A3EA6; --t5: #7A847E;
   --shadow: 0 1px 0 rgba(26,32,29,.05), 0 10px 30px -12px rgba(26,32,29,.22);
@@ -236,6 +237,49 @@ td.pc { width: 22%; } td.dc { width: 48%; }
   .qs-actions { margin-left: auto; }
 }
 
+/* ---------- instructor mode ---------- */
+.btn.rail-instructor { width: 100%; justify-content: center; margin-top: 4px; padding-block: 9px;
+  background: linear-gradient(180deg, var(--lacquer-2), var(--lacquer)); color: var(--enamel); border: 1px solid var(--gold);
+  font-family: "Noto Serif SC", Georgia, serif; font-weight: 700; letter-spacing: .04em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09), 0 8px 16px -10px rgba(0, 0, 0, .7); }
+.btn.rail-instructor svg { color: var(--gold); }
+.btn.rail-instructor:hover { border-color: #DDBE7E; background: linear-gradient(180deg, #3A2F26, var(--lacquer)); }
+.btn.rail-instructor[aria-pressed="true"] { background: linear-gradient(180deg, var(--lacquer-2), var(--lacquer)); border-color: var(--gold);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09), 0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent); }
+.teach { display: flex; flex-direction: column; gap: 14px; }
+.teach-stage { background: var(--raised); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; min-height: 64vh; padding: 18px 22px 14px; }
+.teach-stage.presenting { position: fixed; inset: 0; z-index: 40; border: 0; border-radius: 0; min-height: 0; background: var(--paper);
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(14px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); }
+.teach-slide { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  text-align: center; cursor: pointer; user-select: none; -webkit-user-select: none; padding: 10px 0; }
+.teach-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; width: 100%; align-items: start; }
+.teach-col { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; }
+.teach-tag { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.teach-tag .h { font-size: 15px; letter-spacing: 0; text-transform: none; }
+.teach-big { font-weight: 700; line-height: 1.05; font-size: clamp(56px, 11vw, 170px); overflow-wrap: anywhere; }
+.teach-big.l3 { font-size: clamp(44px, 8vw, 130px); } .teach-big.l4 { font-size: clamp(34px, 6vw, 100px); }
+.presenting .teach-big { font-size: clamp(72px, 15vw, 300px); } .presenting .teach-big.l3 { font-size: clamp(56px, 11vw, 220px); } .presenting .teach-big.l4 { font-size: clamp(40px, 8vw, 170px); }
+.teach-grids { display: flex; gap: 8px; justify-content: center; flex-wrap: nowrap; }
+.teach-grid { position: relative; flex: none; background: var(--raised); border: 1.5px solid var(--seal); }
+.teach-grid svg.rice { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.teach-grid .hw { position: absolute; inset: 0; }
+.teach-grid .hw svg { display: block; }
+.teach-pin { font-size: clamp(40px, 8vw, 110px); font-weight: 500; line-height: 1.15; overflow-wrap: anywhere; }
+.teach-stack { gap: 22px; width: 100%; }
+.teach-pin { word-spacing: .12em; }
+.presenting .teach-pin { font-size: clamp(56px, 11vw, 180px); }
+.teach-def { font-size: clamp(26px, 4.6vw, 56px); font-weight: 500; line-height: 1.2; max-width: 24ch; text-wrap: balance; }
+.presenting .teach-def { font-size: clamp(34px, 6vw, 84px); }
+.teach-rest { color: var(--muted); font-size: clamp(14px, 1.8vw, 22px); max-width: 46ch; }
+.teach-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 12px; }
+.teach-bar .grp { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.teach-where { font-family: var(--f-mono); font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.teach-dots { display: inline-flex; gap: 5px; }
+.teach-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.teach-dots i.on { background: var(--seal); }
+@media (max-width: 560px) { .teach-stage { padding: 14px 14px 12px; min-height: 70vh; } .teach-pair { gap: 12px; } .teach-where .lbl-long { display: none; } }
+
 /* ---------- quick write ---------- */
 .qw-body { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .qw-brief { display: flex; flex-direction: column; gap: 6px; }
@@ -369,6 +413,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
     <div class="rail-tools">
     <button class="btn rail-search" id="qsOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.3"/><path d="m10.2 10.2 3.3 3.3"/></svg>Quick search</button>
     <button class="btn rail-search" id="qwOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Quick write</button>
+    <button class="btn rail-instructor" id="imOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="8" rx="1"/><path d="M8 10.5v3M5.5 13.5h5"/></svg>Instructor mode</button>
     </div>
     <button class="news-link" id="newsOpen" type="button">What's new</button>
     <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Saved in this browser</span></div>
@@ -538,6 +583,31 @@ td.pc { width: 22%; } td.dc { width: 48%; }
         <div class="qw-body" id="qwBody" hidden>
           <aside class="strokes" id="qwPanel"></aside>
           <div class="qw-brief" id="qwBrief" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- INSTRUCTOR MODE: present the current chapter's words to a class -->
+      <section id="v-teach" class="teach" hidden>
+        <div class="head">
+          <div>
+            <div class="eyebrow">Instructor mode · 教学</div>
+            <h1 id="teachTitle">—</h1>
+            <div class="head-meta">Each word: characters, stroke order, pinyin, meaning. Click the slide, or press → / Space, to go on.</div>
+          </div>
+        </div>
+        <div class="teach-stage" id="teachStage">
+          <div class="teach-slide" id="teachSlide" aria-live="polite"></div>
+          <div class="teach-bar" id="teachBar">
+            <div class="grp">
+              <button class="btn" id="teachPrev" type="button" aria-label="Previous slide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>Prev</button>
+              <button class="btn" id="teachNext" type="button" aria-label="Next slide">Next<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 3 5 5-5 5"/></svg></button>
+            </div>
+            <div class="teach-where"><span id="teachWhere"></span><span class="teach-dots" id="teachDots"></span></div>
+            <div class="grp">
+              <button class="btn seal-btn" id="teachHear" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg>Hear it</button>
+              <button class="btn" id="teachFull" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg><span>Full screen</span></button>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -786,7 +856,7 @@ function renderRail() {
   for (const ch of items.concat(items.length ? [] : [SAMPLE])) {
     const li = el("li"); const b = el("button", "chap" + (ch.sample ? " example" : ""));
     b.dataset.id = ch.id;
-    b.setAttribute("aria-current", ch.id === cur.id && !isToolView(prefs.view) ? "true" : "false");
+    b.setAttribute("aria-current", ch.id === cur.id && (!isToolView(prefs.view) || prefs.view in CHAPTER_TOOLS) ? "true" : "false");
     b.append(el("span", "nm", ch.name), el("span", "n", String(ch.cards.length)));
     b.addEventListener("click", () => selectChapter(ch.id));
     li.append(b); ul.append(li);
@@ -837,7 +907,8 @@ function renderConfirm() {
 }
 // Views: "study" | "list" | "add" belong to the current chapter. The tools ("search", "write") are
 // chapter-independent, hide the chapter header and tabs, and have their own sidebar button.
-const TOOL_VIEWS = { search: "#qsOpen", write: "#qwOpen" };
+const TOOL_VIEWS = { search: "#qsOpen", write: "#qwOpen", teach: "#imOpen" };
+const CHAPTER_TOOLS = { teach: 1 }; // tools that work on the current chapter: picking a chapter keeps you in them
 const isToolView = v => v in TOOL_VIEWS;
 function setView(v) {
   if (!isToolView(v)) S.lastChapterView = v;
@@ -846,18 +917,20 @@ function setView(v) {
   for (const t of $$(".tab")) t.setAttribute("aria-selected", t.dataset.view === v ? "true" : "false");
   $("#chapterChrome").hidden = tool;
   for (const k in TOOL_VIEWS) $(TOOL_VIEWS[k]).setAttribute("aria-pressed", v === k ? "true" : "false");
-  for (const b of $$("#chapList .chap")) b.setAttribute("aria-current", !tool && b.dataset.id === current().id ? "true" : "false");
+  for (const b of $$("#chapList .chap")) b.setAttribute("aria-current", (!tool || v in CHAPTER_TOOLS) && b.dataset.id === current().id ? "true" : "false");
   $("#v-study").hidden = v !== "study"; $("#v-list").hidden = v !== "list"; $("#v-add").hidden = v !== "add";
-  $("#v-search").hidden = v !== "search"; $("#v-write").hidden = v !== "write";
+  $("#v-search").hidden = v !== "search"; $("#v-write").hidden = v !== "write"; $("#v-teach").hidden = v !== "teach";
+  if (v !== "teach") leaveTeach();
   if (v === "study") { showCard(); }
   if (v === "list") renderList();
   if (v === "add") { renderPending(); if (!current().sample) loadDict().catch(() => {}); }
   if (v === "search") { renderQuickSearch(); loadDict().catch(() => {}); }
   if (v === "write") { renderQuickWrite(); loadDict().catch(() => {}); }
+  if (v === "teach") renderTeach();
 }
 function selectChapter(id) {
   prefs.cur = id; S.confirm = null; S.idx = 0;
-  if (isToolView(prefs.view)) prefs.view = S.lastChapterView || "study";
+  if (isToolView(prefs.view) && !(prefs.view in CHAPTER_TOOLS)) prefs.view = S.lastChapterView || "study";
   savePrefs();
   renderAll();
 }
@@ -1149,7 +1222,7 @@ function createStrokePanel(root) {
   return panel;
 }
 const studyStrokes = createStrokePanel($("#strokePanel"));
-function remountForTheme() { for (const p of strokePanels) p.remount(); }
+function remountForTheme() { for (const p of strokePanels) p.remount(); if (prefs.view === "teach" && T.slide === 1) renderTeach(); }
 
 /* ================= word list ================= */
 function renderList() {
@@ -1759,17 +1832,163 @@ function setScript(s, remember) {
 for (const b of $$("#segScript button")) b.addEventListener("click", () => { setScript(b.dataset.s); toast(b.dataset.s === "trad" ? "Showing traditional characters" : "Showing simplified characters"); });
 for (const b of $$("#scriptModal button")) b.addEventListener("click", () => setScript(b.dataset.s));
 
+/* ================= instructor mode ================= */
+// Presents the current chapter to a class, 4 slides per word: both character sets side by side, both
+// stroke orders animating together (looping until you move on), pinyin, then meaning. No grading.
+const T = { chapter: null, idx: 0, slide: 0, run: 0 };
+const TEACH_SLIDES = ["Characters", "Stroke order", "Pinyin", "Meaning"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Traditional is stored empty when it's the same as simplified (CC-CEDICT data), so "same" is exact.
+const tradOf = c => (c.t && c.t !== c.w ? c.t : "");
+function stopTeachAnim() { T.run++; }
+function leaveTeach() { stopTeachAnim(); if ($("#teachStage").classList.contains("presenting")) setPresenting(false); }
+function teachCol(tagHtml, body) {
+  const col = el("div", "teach-col"); const tag = el("div", "teach-tag"); tag.innerHTML = tagHtml;
+  col.append(tag, body); return col;
+}
+const TAG_S = '<span class="h sc-s">简体</span> · Simplified', TAG_T = '<span class="h sc-t">繁體</span> · Traditional';
+const TAG_SAME = '<span class="h sc-s">简体</span> = <span class="h sc-t">繁體</span> · Same in both';
+function teachBig(text, fontCls) {
+  const n = [...text].length;
+  return el("div", "teach-big " + fontCls + (n >= 4 ? " l4" : n === 3 ? " l3" : ""), text);
+}
+// One row of 米字格 grids, one per character, sized to fit `width`.
+function teachGrids(text, width, maxSize) {
+  const chars = [...text].filter(c => HAN_RE.test(c));
+  const size = Math.max(48, Math.min(maxSize, Math.floor((width - 8 * (chars.length - 1)) / Math.max(1, chars.length))));
+  const row = el("div", "teach-grids"), writers = [];
+  for (const c of chars) {
+    const g = el("div", "teach-grid"); g.style.width = g.style.height = size + "px";
+    g.innerHTML = '<svg class="rice" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g stroke="var(--grid)" stroke-width=".6" stroke-dasharray="2.2 2" fill="none"><path d="M50 0V100M0 50H100M0 0 100 100M100 0 0 100"/></g></svg>';
+    const hw = el("div", "hw"); g.append(hw); row.append(g);
+    if (typeof HanziWriter === "undefined") { hw.textContent = c; continue; }
+    writers.push(HanziWriter.create(hw, c, {
+      width: size, height: size, padding: Math.round(size * 0.07), showOutline: true, showCharacter: false,
+      strokeColor: tok("--ink"), outlineColor: tok("--line"), strokeAnimationSpeed: 1, delayBetweenStrokes: 220,
+      charDataLoader: loadStrokes
+    }));
+  }
+  return { row, writers };
+}
+// Both sets restart together every cycle; within a word the characters draw one after another.
+async function loopStrokes(groups, run) {
+  while (run === T.run) {
+    for (const w of groups.flat()) w.hideCharacter();
+    await sleep(450);
+    await Promise.all(groups.map(async ws => {
+      for (const w of ws) { if (run !== T.run) return; await Promise.race([w.animateCharacter(), sleep(20000)]); }
+    }));
+    if (run !== T.run) return;
+    await sleep(1600);
+  }
+}
+function renderTeach() {
+  stopTeachAnim();
+  const ch = current(), cards = ch.cards;
+  if (T.chapter !== ch.id) { T.chapter = ch.id; T.idx = 0; T.slide = 0; }
+  if (T.idx >= cards.length) { T.idx = Math.max(0, cards.length - 1); T.slide = 0; }
+  $("#teachTitle").textContent = ch.name;
+  const slide = $("#teachSlide"); slide.textContent = "";
+  const has = cards.length > 0;
+  $("#teachBar").hidden = !has;
+  if (!has) {
+    const e = el("div", "empty"); e.append(el("div", "big", "教"), el("div", null, "No words in this chapter yet."));
+    const b = el("button", "btn primary", "Add words"); b.addEventListener("click", e2 => { e2.stopPropagation(); setView("add"); }); e.append(b);
+    slide.append(e); return;
+  }
+  const card = cards[T.idx], simp = card.w, trad = tradOf(card);
+  const presenting = $("#teachStage").classList.contains("presenting");
+  if (T.slide === 0 || T.slide === 1) {
+    const full = slide.clientWidth || 600, n = [...simp].filter(c => HAN_RE.test(c)).length || 1;
+    // Side by side when the grids still get a usable size; otherwise (long word, narrow screen) stack them.
+    const sideBySide = trad && (T.slide === 0 || (full - 24) / 2 / n >= 80);
+    const wrap = sideBySide ? el("div", "teach-pair") : el("div", "teach-col teach-stack");
+    slide.append(wrap);
+    if (T.slide === 0) {
+      if (trad) wrap.append(teachCol(TAG_S, teachBig(simp, "sc-s")), teachCol(TAG_T, teachBig(trad, "sc-t")));
+      else wrap.append(teachCol(TAG_SAME, teachBig(simp, "sc-s")));
+    } else {
+      const maxSize = presenting ? 340 : 240;
+      const colW = sideBySide ? (full - 24) / 2 : Math.min(full, 760);
+      const sets = trad ? [[simp, TAG_S], [trad, TAG_T]] : [[simp, TAG_SAME]];
+      const groups = [];
+      for (const [text, tag] of sets) { const g = teachGrids(text, colW, maxSize); groups.push(g.writers); wrap.append(teachCol(tag, g.row)); }
+      loopStrokes(groups, T.run);
+    }
+  } else if (T.slide === 2) {
+    const pin = el("div", "teach-pin");
+    (card.p || "").split(/\s+/).filter(Boolean).forEach((s, k) => { if (k) pin.append(" "); pin.append(el("span", "tone" + toneOf(s), s)); });
+    if (!card.p) pin.append(el("span", "tone5", "—"));
+    slide.append(pin, el("div", "pin-num", card.p ? marksToNum(card.p) : ""));
+  } else {
+    const { senses, mw } = splitDef(prettyDef(card.d || ""));
+    slide.append(el("div", "teach-def", senses[0] || "No definition yet"));
+    if (senses.length > 1) slide.append(el("div", "teach-rest", senses.slice(1).join("; ")));
+    if (mw) { const m = el("div", "mw"); m.append("Measure word: ", el("b", null, mw)); slide.append(m); }
+  }
+  $("#teachWhere").innerHTML = "";
+  $("#teachWhere").append(el("span", null, `Word ${T.idx + 1} / ${cards.length}`), el("span", "lbl-long", " · " + TEACH_SLIDES[T.slide]));
+  const dots = $("#teachDots"); dots.textContent = "";
+  TEACH_SLIDES.forEach((name, i) => { const d = el("i", i === T.slide ? "on" : null); d.title = name; dots.append(d); });
+  $("#teachPrev").disabled = T.idx === 0 && T.slide === 0;
+  $("#teachNext").disabled = T.idx === cards.length - 1 && T.slide === TEACH_SLIDES.length - 1;
+}
+function teachGo(delta) {
+  const n = current().cards.length; if (!n) return;
+  let i = T.idx, s = T.slide + delta;
+  if (s >= TEACH_SLIDES.length) { s = 0; i++; }
+  if (s < 0) { s = TEACH_SLIDES.length - 1; i--; }
+  if (i < 0) return;
+  if (i >= n) { toast("That's the last word in this chapter."); return; }
+  T.idx = i; T.slide = s; renderTeach();
+}
+// Full screen for projecting: the stage covers the window (works everywhere), and the browser's own
+// full screen hides its toolbars where it's allowed (not on iPhone).
+function setPresenting(on) {
+  const st = $("#teachStage");
+  st.classList.toggle("presenting", on);
+  $("#teachFull").setAttribute("aria-pressed", on ? "true" : "false");
+  $("#teachFull span").textContent = on ? "Exit full screen" : "Full screen";
+  if (on && st.requestFullscreen && !document.fullscreenElement) st.requestFullscreen().catch(() => {});
+  if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (prefs.view === "teach") renderTeach();
+}
+// Keep the browser's full screen in step with ours both ways: leaving it (Esc, browser UI) ends presenting, and
+// a full-screen request that finishes after presenting was already turned off is undone.
+document.addEventListener("fullscreenchange", () => {
+  const st = $("#teachStage"), on = st.classList.contains("presenting");
+  if (document.fullscreenElement === st && !on) document.exitFullscreen().catch(() => {});
+  else if (!document.fullscreenElement && on) setPresenting(false);
+});
+$("#imOpen").addEventListener("click", () => setView("teach"));
+$("#teachSlide").addEventListener("click", () => teachGo(1));
+$("#teachPrev").addEventListener("click", () => teachGo(-1));
+$("#teachNext").addEventListener("click", () => teachGo(1));
+$("#teachHear").addEventListener("click", () => { const c = current().cards[T.idx]; if (c) speak(c.w); });
+$("#teachFull").addEventListener("click", () => setPresenting(!$("#teachStage").classList.contains("presenting")));
+document.addEventListener("keydown", e => {
+  if (prefs.view !== "teach" || e.metaKey || e.ctrlKey || e.altKey || modalOpen()) return;
+  const tg = e.target; if (tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA" || tg.tagName === "SELECT" || tg.isContentEditable)) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && !(tg && tg.tagName === "BUTTON"))) { e.preventDefault(); teachGo(1); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); teachGo(-1); }
+  else if (e.key === "f" || e.key === "F") setPresenting(!$("#teachStage").classList.contains("presenting"));
+  else if (e.key === "Escape" && $("#teachStage").classList.contains("presenting")) setPresenting(false);
+  else if (e.key === "s" || e.key === "S") { const c = current().cards[T.idx]; if (c) speak(c.w); }
+});
+let teachW = 0;
+new ResizeObserver(entries => {
+  const w = Math.round(entries[0].contentRect.width);
+  if (Math.abs(w - teachW) > 20) { teachW = w; if (prefs.view === "teach" && T.slide === 1) renderTeach(); }
+}).observe($("#teachSlide"));
+
 /* ================= what's new ================= */
 // Shown once to returning users after an update (new users skip it). For the next release, bump
 // `version` and replace `items`; everyone who saw an older version gets it once.
 const WHATS_NEW = {
-  version: "1.1",
+  version: "1.2",
   items: [
-    ["Quick search", "A new way to look up any character, word or pinyin fast."],
-    ["Quick write", "Quickly learn the stroke order for any character."],
-    ["Study mode update", "Stroke order can stay hidden while you practice active recall, to strengthen learning. New buttons use spaced repetition to help you learn a new chapter."],
-    ["Paste an image", "Copy a screenshot or picture of characters and paste it (Ctrl/⌘ + V, or long-press → Paste on a phone) on Add words or Quick search to read the characters."],
-    ["Better character recognition", "Photos and screenshots are read much more accurately, including textbook pages and neat handwriting."]
+    ["Instructor mode", "Teach a chapter's new vocab to a class: simplified and traditional side by side, then both stroke orders animating together, then pinyin and meaning. Has a full screen view for projecting."],
+    ["Bug fixes", "Small fixes and improvements."]
   ],
   foot: "More coming soon, stay tuned! Let me know your thoughts in class if you have any suggestions."
 };
