@@ -275,6 +275,19 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .teach-dots { display: inline-flex; gap: 5px; }
 .teach-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .teach-dots i.on { background: var(--seal); }
+.teach-full-wrap { position: relative; display: inline-flex; }
+.fs-tip { position: absolute; top: calc(100% + 10px); right: 0; z-index: 5; width: max-content; max-width: min(340px, 80vw);
+  display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: 8px;
+  background: var(--ink); color: var(--paper); font-size: 13px; box-shadow: var(--shadow); }
+.fs-tip::before { content: ""; position: absolute; bottom: 100%; right: 22px; border: 7px solid transparent; border-bottom-color: var(--ink); }
+.fs-tip kbd { color: var(--ink); }
+.fs-tip .x { border: 0; background: none; color: inherit; opacity: .7; padding: 2px; border-radius: 4px; display: grid; place-items: center; }
+.fs-tip .x:hover { opacity: 1; background: color-mix(in srgb, var(--paper) 15%, transparent); }
+.fs-tip .x svg { width: 14px; height: 14px; }
+/* Ripple: each letter rises and falls in turn, three times, then settles. */
+.fs-tip .rip { display: inline-block; white-space: pre; animation: fs-ripple .9s ease-in-out 3; animation-delay: calc(var(--i) * 28ms + .3s); }
+@keyframes fs-ripple { 0%, 40%, 100% { transform: translateY(0); } 20% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .fs-tip .rip { animation: none; } }
 @media (max-width: 560px) { .teach-stage { padding: 14px 14px 12px; min-height: 70vh; } .teach-pair { gap: 12px; } .teach-where .lbl-long { display: none; } }
 
 /* ---------- quick write ---------- */
@@ -602,7 +615,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
             <div class="teach-where"><span id="teachWhere"></span><span class="teach-dots" id="teachDots"></span></div>
             <div class="grp">
               <button class="btn seal-btn" id="teachHear" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8"/></svg>Hear it</button>
-              <button class="btn" id="teachFull" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg><span>Full screen</span></button>
+              <span class="teach-full-wrap"><button class="btn" id="teachFull" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg><span>Full screen</span></button><span class="fs-tip" id="fsTip" role="status" hidden></span></span>
             </div>
           </div>
         </div>
@@ -923,7 +936,7 @@ function setView(v) {
   if (v === "add") { renderPending(); if (!current().sample) loadDict().catch(() => {}); }
   if (v === "search") { renderQuickSearch(); loadDict().catch(() => {}); }
   if (v === "write") { renderQuickWrite(); loadDict().catch(() => {}); }
-  if (v === "teach") renderTeach();
+  if (v === "teach") { renderTeach(); showFsTip(); } else hideFsTip();
 }
 function selectChapter(id) {
   prefs.cur = id; S.confirm = null; S.idx = 0;
@@ -1941,8 +1954,27 @@ function teachGo(delta) {
 }
 // Full screen for projecting: the stage covers the window (works everywhere), and the browser's own
 // full screen hides its toolbars where it's allowed (not on iPhone).
+// Keyboard tip under Full screen: shown once per browser session on keyboard-and-mouse devices; closes with ×,
+// or for good once full screen is used.
+const FS_TIP = [["Press "], ["F", "kbd"], [" for Full Screen / "], ["Esc", "kbd"], [" to exit full screen"]];
+function showFsTip() {
+  let seen = false; try { seen = sessionStorage.getItem("zika.fsTip") === "1"; } catch (e) {}
+  if (seen || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  try { sessionStorage.setItem("zika.fsTip", "1"); } catch (e) {}
+  const tip = $("#fsTip"); tip.textContent = "";
+  const text = el("span"); let i = 0;
+  for (const [part, tag] of FS_TIP) {
+    const pieces = tag ? [part] : [...part]; // a key ripples as one unit, words letter by letter
+    for (const p of pieces) { const s = el(tag || "span", "rip", p); s.style.setProperty("--i", i++); text.append(s); }
+  }
+  const x = el("button", "x"); x.type = "button"; x.innerHTML = ICON_X; x.setAttribute("aria-label", "Dismiss tip");
+  x.addEventListener("click", hideFsTip);
+  tip.append(text, x); tip.hidden = false;
+}
+function hideFsTip() { $("#fsTip").hidden = true; }
 function setPresenting(on) {
   const st = $("#teachStage");
+  if (on) hideFsTip();
   st.classList.toggle("presenting", on);
   $("#teachFull").setAttribute("aria-pressed", on ? "true" : "false");
   $("#teachFull span").textContent = on ? "Exit full screen" : "Full screen";
