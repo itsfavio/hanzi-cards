@@ -25,6 +25,7 @@ img{max-width:100%}
   --grid: #E7B3AC;
   --seal: #B5302A;
   --seal-ink: #FFFFFF;
+  --jade: #1E7A6A; --jade-2: #3BAA8E; --jade-ink: #FFFFFF;
   --ok: #2C7447;
   --t1: #C33A30; --t2: #2B8148; --t3: #2E5FB3; --t4: #7A3EA6; --t5: #7A847E;
   --shadow: 0 1px 0 rgba(26,32,29,.05), 0 10px 30px -12px rgba(26,32,29,.22);
@@ -36,6 +37,7 @@ img{max-width:100%}
   :root:not([data-theme="light"]) {
     --paper: #131715; --surface: #1B211E; --raised: #222925; --ink: #E5EAE5; --muted: #98A49D;
     --line: #313A35; --hl: #27302B; --grid: #5C302B; --seal: #E25B4D; --seal-ink: #1A0D0B; --ok: #5DBF7D;
+    --jade: #2E9C82; --jade-2: #74D6BA; --jade-ink: #08201A;
     --t1: #F06C60; --t2: #5DC07E; --t3: #73A0EC; --t4: #BC8EE8; --t5: #8E9A93;
     --shadow: 0 1px 0 rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.7);
     color-scheme: dark;
@@ -44,6 +46,7 @@ img{max-width:100%}
 :root[data-theme="dark"] {
   --paper: #131715; --surface: #1B211E; --raised: #222925; --ink: #E5EAE5; --muted: #98A49D;
   --line: #313A35; --hl: #27302B; --grid: #5C302B; --seal: #E25B4D; --seal-ink: #1A0D0B; --ok: #5DBF7D;
+    --jade: #2E9C82; --jade-2: #74D6BA; --jade-ink: #08201A;
   --t1: #F06C60; --t2: #5DC07E; --t3: #73A0EC; --t4: #BC8EE8; --t5: #8E9A93;
   --shadow: 0 1px 0 rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.7);
   color-scheme: dark;
@@ -68,6 +71,12 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .seal { width: 38px; height: 38px; border-radius: 6px; background: #fff; color: #4F46E5; border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--f-ui); font-weight: 800; font-size: 13px; line-height: 1; letter-spacing: .03em; flex: none; }
 .brand-name { font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
 .brand-sub { font-size: 12px; color: var(--muted); }
+.help-btn { margin-left: auto; flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: radial-gradient(circle at 32% 26%, var(--jade-2), var(--jade) 70%); color: var(--jade-ink);
+  font-family: "Noto Serif SC", "Songti SC", serif; font-weight: 900; font-size: 17px; line-height: 1;
+  box-shadow: 0 3px 8px -3px var(--jade); transition: transform .2s; }
+.help-btn:hover { transform: rotate(-12deg) scale(1.08); }
+@media (prefers-reduced-motion: reduce) { .help-btn { transition: none; } .help-btn:hover { transform: none; } }
 .eyebrow { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .chap-list { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; padding: 0; }
 .chap { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 6px; }
@@ -149,10 +158,10 @@ main { min-width: 0; padding-block: 26px 60px; padding-left: max(16px, env(safe-
 .legend { display: flex; gap: 8px; font-family: var(--f-mono); font-size: 11px; }
 
 .card-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.faces { display: inline-flex; gap: 4px; }
-.faces button { width: 38px; height: 34px; border: 1px solid var(--line); background: var(--raised); border-radius: 6px; font-size: 14px; }
-.faces button[aria-pressed="true"] { border-color: var(--seal); color: var(--seal); font-weight: 600; }
-.faces .zi { font-family: var(--f-han); font-weight: 700; }
+.focus-lbl { font-size: 13px; font-weight: 600; color: var(--seal); }
+.seg.focus-seg { border-color: var(--seal); }
+.seg.focus-seg button + button { border-left-color: var(--seal); }
+.seg.focus-seg button[aria-pressed="true"] { background: var(--seal); color: var(--seal-ink); font-weight: 600; }
 .counter { font-family: var(--f-mono); font-size: 13px; color: var(--muted); min-width: 64px; text-align: center; }
 .audio-row { display: flex; gap: 8px; justify-content: center; }
 .audio-row .btn { padding-inline: 16px; }
@@ -292,6 +301,13 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .news-link { margin-top: auto; align-self: flex-start; border: 0; background: none; padding: 4px 0; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 .news-link:hover { color: var(--ink); }
 .news-link + .sync { margin-top: 0; }
+.modal.help .eyebrow { color: var(--jade); }
+.help-steps { margin: 4px 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 12px; }
+.help-steps li { counter-increment: step; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; }
+.help-steps li::before { content: counter(step); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--jade); color: var(--jade-ink); font-family: var(--f-mono); font-size: 13px; font-weight: 500; }
+.help-steps b { font-size: 15px; }
+.help-steps span { color: var(--muted); font-size: 14px; }
 .script-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 8px; }
 .script-choices button { border: 1px solid var(--line); background: var(--raised); border-radius: 10px; padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 4px; }
 .script-choices button:hover { border-color: var(--seal); }
@@ -336,6 +352,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
         <div class="brand-name">Hanzi Cards</div>
         <div class="brand-sub">Mandarin flashcards</div>
       </div>
+      <button class="help-btn" id="helpOpen" type="button" aria-label="What is Hanzi Cards?" title="What is Hanzi Cards?">？</button>
     </div>
     <div class="script-set">
       <div class="eyebrow">Characters</div>
@@ -387,8 +404,8 @@ td.pc { width: 22%; } td.dc { width: 48%; }
           <div class="study-col">
             <div class="study-bar">
               <div class="grp">
-                <span class="lbl">Front</span>
-                <div class="seg" id="segFront">
+                <span class="focus-lbl" id="focusLbl">Focus on:</span>
+                <div class="seg focus-seg" id="segFront" role="group" aria-labelledby="focusLbl" title="The side each card starts on: what you're practicing recalling from">
                   <button data-f="0" class="han">字</button><button data-f="1">Pinyin</button><button data-f="2">Meaning</button>
                 </div>
               </div>
@@ -429,9 +446,6 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 
             <div class="card-nav" id="cardNav">
               <button class="btn" id="prevBtn" aria-label="Previous card"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>Prev</button>
-              <div class="faces" id="faceBtns">
-                <button data-f="0" class="zi" aria-label="Character side">字</button><button data-f="1" aria-label="Pinyin side">pīn</button><button data-f="2" aria-label="Meaning side">EN</button>
-              </div>
               <span class="counter" id="counter">0 / 0</span>
               <button class="btn" id="nextBtn" aria-label="Next card">Next<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 3 5 5-5 5"/></svg></button>
             </div>
@@ -556,7 +570,17 @@ td.pc { width: 22%; } td.dc { width: 48%; }
     <h2 id="newsTitle">What's new</h2>
     <ul class="news-list" id="newsList"></ul>
     <p class="news-foot" id="newsFoot"></p>
-    <div class="modal-actions"><button class="btn primary" id="newsClose" type="button">Got it</button></div>
+    <div class="modal-actions"><button class="btn primary" id="newsClose" type="button" data-close>Got it</button></div>
+  </div>
+</div>
+<div class="modal-back" id="helpModal" hidden>
+  <div class="modal help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="eyebrow" id="helpEyebrow"></div>
+    <h2 id="helpTitle"></h2>
+    <p id="helpIntro"></p>
+    <ol class="help-steps" id="helpSteps"></ol>
+    <p id="helpFoot"></p>
+    <div class="modal-actions"><button class="btn primary" type="button" data-close>Let's study</button></div>
   </div>
 </div>
 <div class="modal-back" id="scriptModal" hidden>
@@ -952,7 +976,6 @@ function showCard() {
   $("#counter").textContent = left;
   $("#prevBtn").disabled = $("#nextBtn").disabled = S.order.length < 2;
   if (card.id !== lastCardId) { lastCardId = card.id; setFace(prefs.front, true); studyStrokes.show(disp(card)); }
-  else updateFaceBtns();
 }
 function faceNow() { return ((S.spin % 3) + 3) % 3; }
 function applySpin(instant) {
@@ -960,14 +983,12 @@ function applySpin(instant) {
   if (instant) p.classList.add("instant");
   p.style.transform = `translateZ(calc(var(--r) * -1)) rotateY(${-120 * S.spin}deg)`;
   if (instant) { void p.offsetWidth; p.classList.remove("instant"); }
-  updateFaceBtns();
 }
 function setFace(f, instant) {
   if (instant) S.spin = f; else S.spin += (f - faceNow() + 3) % 3;
   applySpin(instant);
 }
 function turn() { S.spin += 1; applySpin(false); }
-function updateFaceBtns() { const f = faceNow(); for (const b of $$("#faceBtns button")) b.setAttribute("aria-pressed", +b.dataset.f === f ? "true" : "false"); }
 function sizePrism() {
   const st = $("#stage"); const w = st.clientWidth || 400;
   const r = w / (2 * Math.sqrt(3));
@@ -1653,7 +1674,6 @@ $("#bannerNew").addEventListener("click", () => { $("#newChapName").focus(); $("
 for (const t of $$(".tab")) t.addEventListener("click", () => setView(t.dataset.view));
 $("#prism").addEventListener("click", turn);
 $("#prism").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); turn(); } });
-for (const b of $$("#faceBtns button")) b.addEventListener("click", () => setFace(+b.dataset.f));
 for (const b of $$("#segFront button")) b.addEventListener("click", () => { prefs.front = +b.dataset.f; savePrefs(); buildOrder(true); setFace(prefs.front, false); });
 for (const b of $$("#segMode button")) b.addEventListener("click", () => { prefs.mode = b.dataset.v; savePrefs(); lastCardId = null; buildOrder(); showCard(); });
 $("#shuffleBtn").addEventListener("click", () => { prefs.shuffle = !prefs.shuffle; savePrefs(); lastCardId = null; buildOrder(); showCard(); });
@@ -1754,25 +1774,56 @@ const WHATS_NEW = {
   foot: "More coming soon, stay tuned! Let me know your thoughts in class if you have any suggestions."
 };
 const modalOpen = () => $$(".modal-back").some(m => !m.hidden);
-let newsReturnFocus = null;
-function openNews() {
+// An info popup: `render` fills it on each open; it closes with its [data-close] button, Esc or a click
+// outside, then gives focus back to whatever opened it.
+function infoModal(sel, render, onClose) {
+  const back = $(sel), closeBtn = $("[data-close]", back);
+  let returnTo = null;
+  function close() {
+    if (back.hidden) return;
+    back.hidden = true;
+    if (onClose) onClose();
+    if (returnTo && returnTo.focus) returnTo.focus();
+  }
+  closeBtn.addEventListener("click", close);
+  back.addEventListener("click", e => { if (e.target === back) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !back.hidden) close(); });
+  return function open() {
+    render(); returnTo = document.activeElement;
+    back.hidden = false; setTimeout(() => closeBtn.focus(), 50);
+  };
+}
+const openNews = infoModal("#newsModal", () => {
   $("#newsVersion").textContent = "Version " + WHATS_NEW.version;
   const ul = $("#newsList"); ul.textContent = "";
   for (const [title, text] of WHATS_NEW.items) { const li = el("li"); li.append(el("b", null, title), el("span", null, text)); ul.append(li); }
   $("#newsFoot").textContent = WHATS_NEW.foot;
-  newsReturnFocus = document.activeElement;
-  $("#newsModal").hidden = false;
-  setTimeout(() => $("#newsClose").focus(), 50);
-}
-function closeNews() {
-  $("#newsModal").hidden = true;
-  lsSet("zika.seenVersion", WHATS_NEW.version);
-  if (newsReturnFocus && newsReturnFocus.focus) newsReturnFocus.focus();
-}
+}, () => lsSet("zika.seenVersion", WHATS_NEW.version));
 $("#newsOpen").addEventListener("click", openNews);
-$("#newsClose").addEventListener("click", closeNews);
-$("#newsModal").addEventListener("click", e => { if (e.target === e.currentTarget) closeNews(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#newsModal").hidden) closeNews(); });
+
+/* ================= about (the ？ button) ================= */
+const ABOUT = {
+  eyebrow: "About · 关于",
+  title: "What is Hanzi Cards?",
+  intro: "Hanzi Cards is a free study tool for Mandarin vocabulary. Make a chapter for each lesson in your class, add its words, and study them until they stick.",
+  steps: [
+    ["Add your vocab", "Type characters or pinyin, paste a screenshot, or snap a photo of your vocab list. Pinyin and meanings fill in automatically."],
+    ["Study with flashcards", "Pick what to focus on (character, pinyin or meaning), try to recall the other sides, then tap the card to check."],
+    ["Grade yourself honestly", "Don't know it, Still learning or I know it. Spaced repetition brings each word back just before you'd forget it, until you truly know it."],
+    ["Write and listen", "Learn stroke order with animations and tracing, and hear every word spoken."],
+    ["Look things up fast", "Quick search looks up any character or pinyin, and Quick write shows how to write it, without adding it to a chapter."]
+  ],
+  foot: "Your progress saves automatically."
+};
+const openAbout = infoModal("#helpModal", () => {
+  $("#helpEyebrow").textContent = ABOUT.eyebrow;
+  $("#helpTitle").textContent = ABOUT.title;
+  $("#helpIntro").textContent = ABOUT.intro;
+  const ol = $("#helpSteps"); ol.textContent = "";
+  for (const [title, text] of ABOUT.steps) { const li = el("li"); li.append(el("b", null, title), el("span", null, text)); ol.append(li); }
+  $("#helpFoot").textContent = ABOUT.foot;
+});
+$("#helpOpen").addEventListener("click", openAbout);
 
 /* ================= boot ================= */
 applyScriptUI();

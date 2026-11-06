@@ -9,7 +9,7 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
 ## Features
 
 - **Chapters.** Make one per lesson. They stay saved, so you don't have to re-enter words.
-- **3-sided cards.** Character → pinyin → meaning. Tap the card to turn it. Pick which side shows first if you want to drill meaning → character.
+- **3-sided cards.** Character → pinyin → meaning. Tap the card to turn it. Use **Focus on** to pick which side each card starts on, for example to drill meaning → character.
 - **Tone colors.** Each pinyin syllable is colored by its tone, so you start remembering words by their tone pattern.
 - **Pronunciation.** Plays the word in a Mandarin voice, with a slow mode for hearing tones clearly.
 - **Stroke order.** Animated stroke order on a 米字格 practice grid, plus a Practice mode where you trace each stroke and get a hint after two misses.
