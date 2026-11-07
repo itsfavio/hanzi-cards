@@ -89,6 +89,20 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .chap .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chap.example .nm::after { content: "example"; font-family: var(--f-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-left: 6px; opacity: .7; }
 .new-chap { display: flex; gap: 6px; }
+/* Chapters folder: a header that folds the chapter list and the New chapter box away. */
+.folder-toggle { display: flex; align-items: center; gap: 7px; width: 100%; border: 0; background: none; padding: 4px 6px; margin: 0 -6px; border-radius: 6px;
+  font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); text-align: left; }
+.folder-toggle:hover { color: var(--ink); background: var(--hl); }
+.folder-toggle svg { width: 14px; height: 14px; flex: none; }
+.folder-toggle .chev { transition: transform .15s; }
+.folder-toggle[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+.folder-toggle .folder-open { display: none; }
+.folder-toggle[aria-expanded="true"] .folder-open { display: block; }
+.folder-toggle[aria-expanded="true"] .folder-shut { display: none; }
+.folder-count { margin-left: auto; font-variant-numeric: tabular-nums; }
+.chap-folder { display: flex; flex-direction: column; gap: 12px; margin-top: -12px; }
+.chap-folder[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .folder-toggle .chev { transition: none; } }
 .new-chap input { flex: 1; min-width: 0; }
 .rail-search { width: 100%; justify-content: center; }
 .rail-tools { display: flex; flex-direction: column; gap: 6px; }
@@ -387,6 +401,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
   .app { grid-template-columns: minmax(0, 1fr); }
   .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px; }
   .rail .eyebrow, .sync { display: none; }
+  .chap-folder { margin-top: -6px; }
   .chap-list { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
   .chap-list li { flex: none; }
   .chap { border: 1px solid var(--line); white-space: nowrap; padding: 6px 10px; }
@@ -421,12 +436,19 @@ td.pc { width: 22%; } td.dc { width: 48%; }
         <button data-s="simp"><span class="h sc-s">简</span>Simplified</button><button data-s="trad"><span class="h sc-t">繁</span>Traditional</button>
       </div>
     </div>
-    <div class="eyebrow">Chapters</div>
+    <button class="folder-toggle" id="chapToggle" type="button" aria-expanded="true" aria-controls="chapFolder">
+      <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+      <svg class="folder-shut" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M1.8 4.2a1 1 0 0 1 1-1h3.3l1.5 1.6h5.6a1 1 0 0 1 1 1v6.4a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z"/></svg>
+      <svg class="folder-open" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M1.8 12.2V4.2a1 1 0 0 1 1-1h3.3l1.5 1.6h4.6a1 1 0 0 1 1 1v1.4"/><path d="M1.8 12.2 3.6 7.2h11l-1.9 5z"/></svg>
+      <span>Chapters</span><span class="folder-count" id="chapCount"></span>
+    </button>
+    <div class="chap-folder" id="chapFolder">
     <ul class="chap-list" id="chapList"></ul>
     <form class="new-chap" id="newChapForm">
       <input class="field" id="newChapName" placeholder="New chapter, e.g. 第三课" aria-label="New chapter name" maxlength="60">
       <button class="btn" type="submit" aria-label="Create chapter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg></button>
     </form>
+    </div>
     <div class="rail-tools">
     <button class="btn rail-search" id="qsOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.3"/><path d="m10.2 10.2 3.3 3.3"/></svg>Quick search</button>
     <button class="btn rail-search" id="qwOpen" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/></svg>Quick write</button>
@@ -756,7 +778,7 @@ const SAMPLE = {
     ["喝茶", "", "hē chá", "to drink tea"]
   ].map((a, i) => ({ id: "x" + i, w: a[0], t: a[1], p: a[2], d: a[3], s: 0 }))
 };
-const prefs = Object.assign({ cur: null, front: 0, mode: "due", strokes: false, shuffle: false, slow: false, view: "study", script: null }, lsGet("zika.prefs", {}));
+const prefs = Object.assign({ cur: null, front: 0, mode: "due", strokes: false, shuffle: false, slow: false, view: "study", script: null, chaptersOpen: true }, lsGet("zika.prefs", {}));
 delete prefs.filter; // replaced by prefs.mode (spaced repetition)
 const isTrad = () => prefs.script === "trad";
 const disp = c => (isTrad() && c.t ? c.t : c.w);
@@ -878,7 +900,16 @@ function renderRail() {
     b.addEventListener("click", () => selectChapter(ch.id));
     li.append(b); ul.append(li);
   }
+  $("#chapCount").textContent = items.length || "";
+  applyChapterFolder();
 }
+// The Chapters folder in the sidebar: open/closed is remembered in prefs.
+function applyChapterFolder() {
+  $("#chapFolder").hidden = !prefs.chaptersOpen;
+  $("#chapToggle").setAttribute("aria-expanded", prefs.chaptersOpen ? "true" : "false");
+  $("#chapToggle").title = prefs.chaptersOpen ? "Hide chapters" : "Show chapters";
+}
+function setChapterFolder(open) { prefs.chaptersOpen = open; savePrefs(); applyChapterFolder(); }
 function renderHead() {
   const ch = current();
   $("#chapTitle").textContent = ch.name;
@@ -1780,7 +1811,8 @@ function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.ad
 
 /* ================= events ================= */
 $("#newChapForm").addEventListener("submit", e => { e.preventDefault(); const v = $("#newChapName").value.trim(); if (!v) { $("#newChapName").focus(); return; } $("#newChapName").value = ""; createChapter(v, "add"); });
-$("#bannerNew").addEventListener("click", () => { $("#newChapName").focus(); $("#newChapName").scrollIntoView({ block: "center" }); });
+$("#bannerNew").addEventListener("click", () => { setChapterFolder(true); $("#newChapName").focus(); $("#newChapName").scrollIntoView({ block: "center" }); });
+$("#chapToggle").addEventListener("click", () => setChapterFolder(!prefs.chaptersOpen));
 for (const t of $$(".tab")) t.addEventListener("click", () => setView(t.dataset.view));
 $("#prism").addEventListener("click", turn);
 $("#prism").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); turn(); } });
