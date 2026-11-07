@@ -21,6 +21,32 @@ const DET = "PP-OCRv6_small_det", REC = "PP-OCRv6_small_rec";
 // photos ~9x faster in testing (16.7 s -> 1.9 s on a desktop) with no loss of accuracy on the test set.
 const MAX_SIDE = 1280;
 
+// The big files (models + ONNX Runtime's wasm, ~45 MB) are kept in Cache Storage after the first download,
+// so later visits load them from the device instead of re-downloading or re-checking with the server
+// (GitHub Pages lets browsers keep files only 10 minutes before re-checking, and phones evict big HTTP-cache
+// entries). OCR_ASSET_VERSION is a fingerprint of those files that build_ocr.sh stamps in, so every rebuild
+// gets a fresh cache and old ones are deleted. Anything else, or any cache failure, goes to the network.
+const CACHE = "hanzi-cards-ocr-" + (typeof OCR_ASSET_VERSION === "string" ? OCR_ASSET_VERSION : "dev");
+const PERSIST = [new URL(DET + ".tar", MODELS).href, new URL(REC + ".tar", MODELS).href, new URL("ort-wasm.wasm", HERE).href];
+const netFetch = self.fetch.bind(self);
+self.fetch = async (input, init) => {
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  if (!PERSIST.includes(url) || !self.caches) return netFetch(input, init);
+  try {
+    const cache = await caches.open(CACHE);
+    const hit = await cache.match(url);
+    if (hit) return hit;
+    const res = await netFetch(input, init);
+    if (res.ok) cache.put(url, res.clone()).catch(() => {});
+    return res;
+  } catch (e) {
+    return netFetch(input, init);
+  }
+};
+if (self.caches) {
+  caches.keys().then(keys => keys.filter(k => k.startsWith("hanzi-cards-ocr-") && k !== CACHE).forEach(k => caches.delete(k))).catch(() => {});
+}
+
 let engineP = null;
 function engine() {
   return engineP || (engineP = PaddleOCR.create({

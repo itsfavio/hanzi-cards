@@ -19,11 +19,6 @@ cd "$SRC"
 npm install --no-audit --no-fund
 mkdir -p "$OUT" "$MODELS"
 
-# fs/path/crypto are only touched by OpenCV.js's Node code path, never in a browser.
-npx esbuild worker.js --bundle --format=esm --platform=browser --minify \
-  --external:fs --external:path --external:crypto \
-  --outfile="$OUT/ocr-worker.js"
-
 ORT="$SRC/node_modules/onnxruntime-web/dist"
 cp "$ORT/ort-wasm-simd-threaded.mjs" "$OUT/ort-wasm.js"
 cp "$ORT/ort-wasm-simd-threaded.wasm" "$OUT/ort-wasm.wasm"
@@ -36,4 +31,14 @@ for m in PP-OCRv6_small_det PP-OCRv6_small_rec; do
   tar -tf "$MODELS/$m.tar" | grep -q "inference.onnx" || { echo "bad archive: $m.tar" >&2; exit 1; }
 done
 
+# Fingerprint of the files the worker keeps in Cache Storage: any change to them gives browsers a fresh cache.
+VERSION=$(cat "$OUT/ort-wasm.wasm" "$MODELS/PP-OCRv6_small_det.tar" "$MODELS/PP-OCRv6_small_rec.tar" | sha256sum | cut -c1-12)
+
+# fs/path/crypto are only touched by OpenCV.js's Node code path, never in a browser.
+npx esbuild worker.js --bundle --format=esm --platform=browser --minify \
+  --external:fs --external:path --external:crypto \
+  --define:OCR_ASSET_VERSION="\"$VERSION\"" \
+  --outfile="$OUT/ocr-worker.js"
+
+echo "OCR asset version: $VERSION"
 ls -l "$OUT" "$MODELS"
