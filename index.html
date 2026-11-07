@@ -310,6 +310,13 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .add-in { display: flex; flex-direction: column; gap: 10px; }
 .add-in textarea { min-height: 230px; resize: vertical; line-height: 1.7; font-size: 16px; }
 .hint { font-size: 13px; color: var(--muted); }
+/* Spinner shown in a status line while a photo is being read. */
+.hint.busy { display: flex; align-items: center; gap: 8px; }
+.hint.busy[hidden] { display: none; }
+.hint.busy::before { content: ""; flex: none; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--seal); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .hint.busy::before { animation-duration: 2.4s; } }
 .hint code { font-family: var(--f-han); font-size: 13px; background: var(--hl); padding: 1px 5px; border-radius: 4px; }
 .hint ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
 .pending { display: flex; flex-direction: column; gap: 12px; }
@@ -1741,6 +1748,7 @@ function wirePhoto({ pickBtn, input, status, onLines }) {
     if (!blob || ocrBusy) return;
     if (!/^image\//.test(blob.type || "")) { toast("Choose an image file."); return; }
     ocrBusy = true; photoBtns.forEach(b => b.disabled = true);
+    status.classList.add("busy"); status.setAttribute("aria-busy", "true");
     try {
       const lines = await readHanFromImage(blob, report);
       if (!lines.length) { report("No Chinese characters found in that image. Try a clearer, straighter, well-lit photo."); return; }
@@ -1750,6 +1758,7 @@ function wirePhoto({ pickBtn, input, status, onLines }) {
       report("Couldn't read that image. The reader may be offline or blocked — you can still type the characters in.");
     } finally {
       ocrBusy = false; photoBtns.forEach(b => b.disabled = false);
+      status.classList.remove("busy"); status.removeAttribute("aria-busy");
     }
   }
   photoBtns.push(pickBtn);
