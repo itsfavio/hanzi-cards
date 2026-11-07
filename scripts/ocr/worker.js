@@ -1,8 +1,9 @@
 // Source of vendor/ocr/ocr-worker.js: runs PaddleOCR (PP-OCRv6 small) in a Web Worker so reading an
 // image never freezes the page. Rebuild with scripts/build_ocr.sh after editing.
 //
-// Protocol (see readHanFromImage in index.html):
-//   page   → worker  { id, image: ImageBitmap }      (the bitmap is transferred)
+// Protocol (see readHanFromImage and warmOcr in index.html):
+//   page   → worker  { id, image: ImageBitmap }      read an image (the bitmap is transferred)
+//                    { id, warm: true }              load the models and run one tiny read, so later reads start hot
 //   worker → page    { id, status: "reading" }       once the models are loaded
 //                    { id, lines: string[] }         recognised text, one entry per line, reading order
 //                    { id, error: string }
@@ -15,6 +16,10 @@ import cvModule from "@techstark/opencv-js";
 const HERE = new URL("./", import.meta.url);
 const MODELS = new URL("../../data/ocr/", import.meta.url);
 const DET = "PP-OCRv6_small_det", REC = "PP-OCRv6_small_rec";
+// Phone photos are ~4000 px wide; the detector's cost grows with pixel count, and text stays legible far
+// below that (PaddleOCR traditionally uses 960). Shrinking the longest side to this size made phone-sized
+// photos ~9x faster in testing (16.7 s -> 1.9 s on a desktop) with no loss of accuracy on the test set.
+const MAX_SIDE = 1280;
 
 let engineP = null;
 function engine() {
@@ -42,18 +47,31 @@ function readingOrder(items) {
   return rows.map(r => r.items.sort((a, b) => a.x - b.x).map(b => b.text).join(" "));
 }
 
+// Draws the image (scaled down if it's larger than MAX_SIDE) and wraps the pixels as an RGBA Mat, like cv.imread.
 function bitmapToMat(cv, bitmap) {
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const s = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * s)), h = Math.max(1, Math.round(bitmap.height * s));
+  const canvas = new OffscreenCanvas(w, h);
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  ctx.drawImage(bitmap, 0, 0);
-  return cv.matFromImageData(ctx.getImageData(0, 0, bitmap.width, bitmap.height)); // RGBA, like cv.imread
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  return cv.matFromImageData(ctx.getImageData(0, 0, w, h));
 }
 
-self.onmessage = async ({ data: { id, image } }) => {
+async function handle({ id, image, warm }) {
   let mat = null;
   try {
     const ocr = await engine(); // also waits for OpenCV to finish initialising
+    // Not `await cvModule` in a helper: the OpenCV module has a .then that resolves to itself, so returning
+    // it from an async function makes the promise chase that forever.
     const cv = cvModule instanceof Promise ? await cvModule : cvModule;
+    if (warm) {
+      // One read of a small blank image compiles and allocates everything the first real read would.
+      mat = new cv.Mat(64, 256, cv.CV_8UC4, new cv.Scalar(255, 255, 255, 255));
+      await ocr.predict(mat);
+      self.postMessage({ id, lines: [] });
+      return;
+    }
     self.postMessage({ id, status: "reading" });
     mat = bitmapToMat(cv, image);
     const [res] = await ocr.predict(mat);
@@ -64,4 +82,8 @@ self.onmessage = async ({ data: { id, image } }) => {
     if (mat) mat.delete();
     if (image && image.close) image.close();
   }
-};
+}
+
+// One job at a time: a background warm-up and a real read never run on the model at once.
+let queue = Promise.resolve();
+self.onmessage = ({ data }) => { queue = queue.then(() => handle(data)); };

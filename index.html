@@ -1679,8 +1679,9 @@ function createChapter(name, view) {
 
 /* ================= photo → characters (PaddleOCR, on-device) ================= */
 // PP-OCRv6 runs in a Web Worker (vendor/ocr/ocr-worker.js, built by scripts/build_ocr.sh) so the
-// page stays responsive. It loads on first use (about 55 MB, then cached by the browser), runs
-// entirely on the device, and reads simplified and traditional alike. No server or AI service.
+// page stays responsive. warmOcr() loads it in the background once the page is idle (about 55 MB the
+// first time, then cached by the browser) so the first photo reads right away; otherwise it loads on
+// first use. It runs entirely on the device and reads simplified and traditional alike.
 const OCR_WORKER_URL = "vendor/ocr/ocr-worker.js";
 let ocrWorker = null, ocrLoaded = false, ocrSeq = 0, ocrBusy = false;
 const ocrJobs = new Map(); // id → { resolve, reject, report }
@@ -1696,15 +1697,33 @@ function getOcrWorker() {
   // The worker script itself failed to load (offline, old browser): fail pending jobs and allow a retry.
   w.onerror = e => {
     e.preventDefault();
+    console.error("OCR worker error:", e.message || e);
     for (const job of ocrJobs.values()) job.reject(new Error("OCR worker failed to start"));
     ocrJobs.clear(); w.terminate(); if (ocrWorker === w) ocrWorker = null;
   };
   return w;
 }
+// Loads the models and runs one tiny read in the background, so the first real photo starts hot.
+let ocrWarming = false;
+function warmOcr() {
+  if (ocrLoaded || ocrWarming) return;
+  ocrWarming = true;
+  const id = ++ocrSeq;
+  ocrJobs.set(id, { resolve: () => { ocrLoaded = true; ocrWarming = false; }, reject: () => { ocrWarming = false; }, report: () => {} });
+  getOcrWorker().postMessage({ id, warm: true });
+}
+// Preloads after the page has settled, unless the visitor asked to save data or is on a very slow
+// connection (2G); they still get the reader on first use.
+function warmOcrWhenIdle() {
+  const c = navigator.connection;
+  if (c && (c.saveData || /2g/.test(c.effectiveType || ""))) return;
+  const start = () => (window.requestIdleCallback ? requestIdleCallback(warmOcr, { timeout: 4000 }) : setTimeout(warmOcr, 1500));
+  if (document.readyState === "complete") start(); else addEventListener("load", start, { once: true });
+}
 // Reads Chinese off an image. Returns one string per source line, Han characters only.
 // Knows nothing about the page: each screen decides where the text goes (see wirePhoto).
 async function readHanFromImage(blob, report) {
-  report(ocrLoaded ? "Reading the image…" : "Loading the character reader (about 55 MB the first time, then it's saved)…");
+  report(ocrLoaded ? "Reading the image…" : ocrWarming ? "The character reader is almost ready…" : "Loading the character reader (about 55 MB the first time, then it's saved)…");
   const image = await createImageBitmap(blob);
   const lines = await new Promise((resolve, reject) => {
     const id = ++ocrSeq; ocrJobs.set(id, { resolve, reject, report });
@@ -2085,6 +2104,7 @@ if (!prefs.script) {
 renderAll();
 sizePrism();
 connect();
+warmOcrWhenIdle();
 })();
 </script>
 
