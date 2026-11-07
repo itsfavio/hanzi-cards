@@ -973,6 +973,7 @@ function setView(v) {
   if (v === "list") renderList();
   if (v === "add") { renderPending(); if (!current().sample) loadDict().catch(() => {}); }
   if (v === "search") { renderQuickSearch(); loadDict().catch(() => {}); }
+  if (v in OCR_VIEWS) warmOcr(); else scheduleOcrRelease();
   if (v === "write") { renderQuickWrite(); loadDict().catch(() => {}); }
   if (v === "teach") { renderTeach(); showFsTip(); } else hideFsTip();
 }
@@ -1716,11 +1717,16 @@ function createChapter(name, view) {
 }
 
 /* ================= photo → characters (PaddleOCR, on-device) ================= */
-// PP-OCRv6 runs in a Web Worker (vendor/ocr/ocr-worker.js, built by scripts/build_ocr.sh) so the
-// page stays responsive. warmOcrNow() starts loading it as soon as the app opens (about 55 MB the
-// first time, then cached by the browser) so the first photo reads right away; otherwise it loads on
-// first use. It runs entirely on the device and reads simplified and traditional alike.
+// PP-OCRv6 runs in a Web Worker (vendor/ocr/ocr-worker.js, built by scripts/build_ocr.sh) so the page stays
+// responsive. It runs entirely on the device and reads simplified and traditional alike.
+// Memory vs speed: a running reader holds ~430 MB, so it only runs on the screens that read photos.
+//   - prefetchOcrFiles(): at startup, downloads the ~45 MB of models and engine straight to Cache Storage
+//     (on disk, next to no memory), so starting the reader later needs no network.
+//   - warmOcr(): starts the reader when Add words or Quick search opens (about a second from disk).
+//   - scheduleOcrRelease(): frees it a couple of minutes after you leave those screens.
 const OCR_WORKER_URL = "vendor/ocr/ocr-worker.js";
+const OCR_VIEWS = { add: 1, search: 1 };
+const OCR_RELEASE_MS = 2 * 60 * 1000;
 let ocrWorker = null, ocrLoaded = false, ocrSeq = 0, ocrBusy = false;
 const ocrJobs = new Map(); // id → { resolve, reject, report }
 function getOcrWorker() {
@@ -1731,36 +1737,63 @@ function getOcrWorker() {
     if (data.status === "reading") { ocrLoaded = true; job.report("Reading the image…"); return; }
     ocrJobs.delete(data.id);
     if (data.error) job.reject(new Error(data.error)); else job.resolve(data.lines);
+    scheduleOcrRelease();
   };
   // The worker script itself failed to load (offline, old browser): fail pending jobs and allow a retry.
   w.onerror = e => {
     e.preventDefault();
     console.error("OCR worker error:", e.message || e);
-    for (const job of ocrJobs.values()) job.reject(new Error("OCR worker failed to start"));
-    ocrJobs.clear(); w.terminate(); if (ocrWorker === w) ocrWorker = null;
+    stopOcrWorker(new Error("OCR worker failed to start"));
   };
   return w;
+}
+function stopOcrWorker(reason) {
+  for (const job of ocrJobs.values()) job.reject(reason);
+  ocrJobs.clear();
+  if (ocrWorker) ocrWorker.terminate();
+  ocrWorker = null; ocrLoaded = false; ocrWarming = false;
 }
 // Loads the models and runs one tiny read in the background, so the first real photo starts hot.
 let ocrWarming = false;
 function warmOcr() {
+  clearTimeout(ocrReleaseT);
   if (ocrLoaded || ocrWarming) return;
   ocrWarming = true;
   const id = ++ocrSeq;
   ocrJobs.set(id, { resolve: () => { ocrLoaded = true; ocrWarming = false; }, reject: () => { ocrWarming = false; }, report: () => {} });
   getOcrWorker().postMessage({ id, warm: true });
 }
-// Preloads as soon as the app starts (the reader runs in its own thread, so this doesn't slow the page),
-// unless the visitor asked to save data or is on a very slow connection (2G); they get it on first use.
-function warmOcrNow() {
+// Frees the reader's memory once nobody is on a photo screen or using it for a while.
+let ocrReleaseT = 0;
+function scheduleOcrRelease() {
+  clearTimeout(ocrReleaseT);
+  if (!ocrWorker) return;
+  ocrReleaseT = setTimeout(() => {
+    if (ocrBusy || ocrJobs.size || prefs.view in OCR_VIEWS) return;
+    stopOcrWorker(new Error("released"));
+  }, OCR_RELEASE_MS);
+}
+// Downloads the reader's big files into the same Cache Storage the worker reads from (the worker keeps
+// them under hanzi-cards-ocr-<version>; version.txt is written by build_ocr.sh). Skipped in data-saver
+// mode and on 2G; any failure just leaves the files to be fetched on first use.
+async function prefetchOcrFiles() {
   const c = navigator.connection;
-  if (c && (c.saveData || /2g/.test(c.effectiveType || ""))) return;
-  warmOcr();
+  if ((c && (c.saveData || /2g/.test(c.effectiveType || ""))) || !window.caches) return;
+  try {
+    const ver = (await (await fetch("vendor/ocr/version.txt", { cache: "no-cache" })).text()).trim();
+    if (!/^[0-9a-f]{6,64}$/.test(ver)) return;
+    const cache = await caches.open("hanzi-cards-ocr-" + ver);
+    for (const f of ["data/ocr/PP-OCRv6_small_det.tar", "data/ocr/PP-OCRv6_small_rec.tar", "vendor/ocr/ort-wasm.wasm"]) {
+      const url = new URL(f, location.href).href;
+      if (!(await cache.match(url))) await cache.add(url);
+    }
+  } catch (e) { /* first use will fetch them */ }
 }
 // Reads Chinese off an image. Returns one string per source line, Han characters only.
 // Knows nothing about the page: each screen decides where the text goes (see wirePhoto).
 async function readHanFromImage(blob, report) {
-  report(ocrLoaded ? "Reading the image…" : ocrWarming ? "The character reader is almost ready…" : "Loading the character reader (about 55 MB the first time, then it's saved)…");
+  clearTimeout(ocrReleaseT);
+  report(ocrLoaded ? "Reading the image…" : ocrWarming ? "The character reader is almost ready…" : "Loading the character reader…");
   const image = await createImageBitmap(blob);
   const lines = await new Promise((resolve, reject) => {
     const id = ++ocrSeq; ocrJobs.set(id, { resolve, reject, report });
@@ -2144,7 +2177,7 @@ if (!prefs.script) {
 renderAll();
 sizePrism();
 connect();
-warmOcrNow();
+prefetchOcrFiles();
 })();
 </script>
 

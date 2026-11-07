@@ -4,6 +4,7 @@
 #   vendor/ocr/ocr-worker.js   scripts/ocr/worker.js bundled with PaddleOCR.js, OpenCV.js and ONNX Runtime Web
 #   vendor/ocr/ort-wasm.js     ONNX Runtime's wasm glue (renamed from .mjs)
 #   vendor/ocr/ort-wasm.wasm   ONNX Runtime's wasm binary
+#   vendor/ocr/version.txt     fingerprint of the cached files (the page prefetches them under it)
 #   data/ocr/*.tar             PP-OCRv6 small detection + recognition models (official PaddleOCR ONNX exports)
 #
 # Usage (from the repo root):  sh scripts/build_ocr.sh
@@ -40,5 +41,7 @@ npx esbuild worker.js --bundle --format=esm --platform=browser --minify \
   --define:OCR_ASSET_VERSION="\"$VERSION\"" \
   --outfile="$OUT/ocr-worker.js"
 
+# The page reads this to prefetch the same files into the same cache (see prefetchOcrFiles in index.html).
+echo "$VERSION" > "$OUT/version.txt"
 echo "OCR asset version: $VERSION"
 ls -l "$OUT" "$MODELS"
