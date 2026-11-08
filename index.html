@@ -535,7 +535,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
             </div>
             <div class="audio-row" id="audioRow">
               <button class="btn seal-btn" id="speakBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.4 3.8a6 6 0 0 1 0 8.4"/></svg>Hear it</button>
-              <button class="btn" id="slowBtn" aria-pressed="false" title="Slower speech">Slow</button>
+              <button class="btn" id="slowBtn" title="Hear it slowly, one syllable at a time">Slow</button>
               <button class="btn" id="peekBtn" aria-pressed="false" title="Show the stroke order for this card">Peek strokes</button>
             </div>
             <div class="voice-note" id="voiceNote" hidden></div>
@@ -778,8 +778,9 @@ const SAMPLE = {
     ["喝茶", "", "hē chá", "to drink tea"]
   ].map((a, i) => ({ id: "x" + i, w: a[0], t: a[1], p: a[2], d: a[3], s: 0 }))
 };
-const prefs = Object.assign({ cur: null, front: 0, mode: "due", strokes: false, shuffle: false, slow: false, view: "study", script: null, chaptersOpen: true }, lsGet("zika.prefs", {}));
+const prefs = Object.assign({ cur: null, front: 0, mode: "due", strokes: false, shuffle: false, view: "study", script: null, chaptersOpen: true }, lsGet("zika.prefs", {}));
 delete prefs.filter; // replaced by prefs.mode (spaced repetition)
+delete prefs.slow;   // Slow is a play button now, not a saved on/off setting
 const isTrad = () => prefs.script === "trad";
 const disp = c => (isTrad() && c.t ? c.t : c.w);
 const otherForm = c => (c.t && c.t !== c.w ? (isTrad() ? c.w : c.t) : "");
@@ -1038,7 +1039,6 @@ function renderStudyBar() {
   for (const b of $$("#segFront button")) b.setAttribute("aria-pressed", +b.dataset.f === prefs.front ? "true" : "false");
   for (const b of $$("#segMode button")) b.setAttribute("aria-pressed", b.dataset.v === prefs.mode ? "true" : "false");
   $("#shuffleBtn").setAttribute("aria-pressed", prefs.shuffle ? "true" : "false");
-  $("#slowBtn").setAttribute("aria-pressed", prefs.slow ? "true" : "false");
   $("#strokeToggle").checked = !!prefs.strokes;
   const known = ch.cards.filter(c => c.s === ST.KNOWN).length;
   $("#progBar").style.width = ch.cards.length ? (known / ch.cards.length * 100) + "%" : "0";
@@ -1181,15 +1181,29 @@ function pickVoice() {
   return voice;
 }
 if (window.speechSynthesis) { pickVoice(); window.speechSynthesis.addEventListener ? window.speechSynthesis.addEventListener("voiceschanged", pickVoice) : (window.speechSynthesis.onvoiceschanged = pickVoice); }
-function speak(text) {
+// Slow speech: a lower rate alone barely changes these voices (most of a short clip is fixed silence, and
+// some voices ignore the rate), so slow mode also pauses between syllables: 学习 is spoken as "学，习".
+// Measured with the Windows voices in Chrome: 学习 1.5 s normally, 2.7 s slow (about 3x slower speech).
+// Said separately, each syllable keeps its dictionary tone (你好: nǐ, hǎo rather than ní hǎo).
+function slowText(text) { const chars = [...text].filter(c => HAN_RE.test(c)); return chars.length > 1 ? chars.join("，") : text; }
+let utterance = null; // kept so the browser can't garbage-collect it mid-word (a Safari/Chrome bug)
+function speak(text, opts) {
   const syn = window.speechSynthesis;
   if (!syn || typeof SpeechSynthesisUtterance === "undefined") { toast("This browser can't play speech."); return; }
   if (!voice) pickVoice();
-  if (syn.speaking || syn.pending) syn.cancel();
-  const u = new SpeechSynthesisUtterance(text);
+  const slow = !!(opts && opts.slow);
+  const u = utterance = new SpeechSynthesisUtterance(slow ? slowText(text) : text);
   u.lang = voice ? voice.lang : "zh-CN"; if (voice) u.voice = voice;
-  u.rate = prefs.slow ? 0.5 : 0.9;
-  syn.speak(u); // synchronous: iOS only allows speech started directly from the tap
+  u.rate = slow ? 0.5 : 0.9;
+  if (syn.paused) syn.resume(); // Chrome can get stuck paused, and then nothing plays until a reload
+  if (syn.speaking || syn.pending) {
+    // Chrome drops an utterance queued in the same instant as cancel(), so give the cancel a moment.
+    // (Speech has already played once by now, so iOS no longer needs this call to come straight from a tap.)
+    syn.cancel();
+    setTimeout(() => { if (utterance === u) syn.speak(u); }, 60);
+  } else {
+    syn.speak(u); // synchronous: iOS only allows the first speech to start directly from a tap
+  }
   if (!voice && voicesChecked) $("#voiceNote").hidden = false;
 }
 
@@ -1855,7 +1869,7 @@ $("#shuffleBtn").addEventListener("click", () => { prefs.shuffle = !prefs.shuffl
 $("#strokeToggle").addEventListener("change", e => { prefs.strokes = e.target.checked; savePrefs(); applyStrokeVisibility(!!cardAt()); });
 $("#peekBtn").addEventListener("click", () => { const c = cardAt(); if (!c) return; S.peek = S.peek === c.id ? null : c.id; applyStrokeVisibility(true); });
 $("#dontBtn").addEventListener("click", () => grade("dont"));
-$("#slowBtn").addEventListener("click", () => { prefs.slow = !prefs.slow; savePrefs(); $("#slowBtn").setAttribute("aria-pressed", prefs.slow ? "true" : "false"); const c = cardAt(); if (c) speak(c.w); });
+$("#slowBtn").addEventListener("click", () => { const c = cardAt(); if (c) speak(c.w, { slow: true }); });
 $("#prevBtn").addEventListener("click", () => go(-1));
 $("#nextBtn").addEventListener("click", () => go(1));
 $("#speakBtn").addEventListener("click", () => { const c = cardAt(); if (c) speak(c.w); });

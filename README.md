@@ -11,7 +11,7 @@ It's a plain static site with no build step, no backend, and no accounts. Open i
 - **Chapters.** Make one per lesson. They stay saved, so you don't have to re-enter words.
 - **3-sided cards.** Character → pinyin → meaning. Tap the card to turn it. Use **Focus on** to pick which side each card starts on, for example to drill meaning → character.
 - **Tone colors.** Each pinyin syllable is colored by its tone, so you start remembering words by their tone pattern.
-- **Pronunciation.** Plays the word in a Mandarin voice, with a slow mode for hearing tones clearly.
+- **Pronunciation.** Plays the word in a Mandarin voice. **Slow** says it again one syllable at a time, slowly, so you can hear each tone (each syllable in its dictionary tone).
 - **Stroke order.** Animated stroke order on a 米字格 practice grid, plus a Practice mode where you trace each stroke and get a hint after two misses.
 - **Simplified or traditional.** Chosen on first visit, switchable any time with the 简 / 繁 toggle.
 - **Built-in dictionary.** Type characters or pinyin and the pinyin and meanings fill in automatically from CC-CEDICT (about 120k words).
