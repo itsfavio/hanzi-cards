@@ -230,6 +230,9 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .qs-form { display: flex; gap: 8px; flex-wrap: wrap; }
 .qs-form .field { flex: 1 1 260px; min-width: 0; font-size: 18px; padding: 10px 12px; }
 .qs-results { display: flex; flex-direction: column; gap: 12px; }
+.egg { margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.egg img { display: block; width: min(320px, 100%); height: auto; border-radius: 12px; box-shadow: var(--shadow); }
+.egg figcaption { font-size: 14px; color: var(--muted); }
 .qs-card { border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 16px 18px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 22px; }
 .qs-side { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .qs-word { font-family: var(--f-han); font-size: 48px; font-weight: 700; line-height: 1.05; }
@@ -590,7 +593,7 @@ td.pc { width: 22%; } td.dc { width: 48%; }
           <div>
             <div class="eyebrow">Quick search · 查字</div>
             <h1>Look up a word</h1>
-            <div class="head-meta">Nothing here is added to your chapters. You can also paste a copied image of characters (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>, or long-press the box and Paste).</div>
+            <div class="head-meta"><span>Nothing here is added to your chapters. You can also paste a copied image of characters (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>, or long-press the box and Paste).</span></div>
           </div>
         </div>
         <form class="qs-form" id="qsForm" role="search">
@@ -1570,7 +1573,7 @@ function renderPending() {
 // Add words tab reviews, so itemFinal(result) is already a card ({w, t, p, d}) with the shown reading
 // selected. To add "Add to chapter" later, put a button in the actions slot of renderQsResult that calls
 // addCardsToChapter(current(), [itemFinal(it)]) (and handles the sample deck, which can't be saved).
-const QS = { q: "", results: [] };
+const QS = { q: "", results: [], surprise: null };
 const QS_MAX = 30;
 function quickSearch(q) {
   const out = [], seen = new Set();
@@ -1586,10 +1589,26 @@ function quickSearch(q) {
   }
   return out;
 }
+// A few hidden surprises. Matched by hash so the source doesn't spell out what to type.
+const SURPRISES = {
+  "f865b7413b6711c0556b9bd89fa590a5baafc7a0485234ce38543304ee6cf694": ["img/s1.jpg", 387, 516],
+  "1e7507e503ff86fd2b3399fd15e3f1878c0063c6bccb0c3eb779a5dba47179e7": ["img/s2.jpg", 640, 640],
+  "63b141e38f8c70748af2cf1fbb0e0de2b4856d5044dbec235ad1c8ce724aaa46": ["img/s2.jpg", 640, 640]
+};
+async function surpriseFor(q) {
+  if (!window.crypto || !crypto.subtle || q.length > 40) return null;
+  try {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("hanzi-cards:" + q.toLowerCase()));
+    return SURPRISES[[...new Uint8Array(d)].map(b => b.toString(16).padStart(2, "0")).join("")] || null;
+  } catch (e) { return null; }
+}
 async function runQuickSearch() {
   const q = $("#qsInput").value.trim();
-  QS.q = q;
+  QS.q = q; QS.surprise = null;
   if (!q) { QS.results = []; renderQuickSearch(); return; }
+  const surprise = await surpriseFor(q);
+  if (QS.q !== q) return;
+  if (surprise) { QS.surprise = surprise; QS.results = []; renderQuickSearch(); return; }
   try { await loadDict(); } catch (e) { return; }
   if (QS.q !== q) return; // a newer search started while the dictionary loaded
   QS.results = quickSearch(q);
@@ -1605,6 +1624,13 @@ function renderQuickSearch() {
   if (!QS.q) {
     const e = el("div", "empty"); e.append(el("div", "big", "查"), el("div", null, "Type characters (好, 你好) or pinyin (hao3, nǐ hǎo, nihao) to see the meaning and pinyin."));
     box.append(e); return;
+  }
+  if (QS.surprise) {
+    const [src, w, h] = QS.surprise;
+    const egg = el("figure", "egg");
+    const img = el("img"); img.src = src; img.alt = "Easter egg"; img.width = w; img.height = h;
+    egg.append(img, el("figcaption", null, "You found the easter egg."));
+    box.append(egg); return;
   }
   if (!QS.results.length) {
     const e = el("div", "empty"); e.append(el("div", "big", "无"), el("div", null, `No words found for “${QS.q}”. Try tone numbers like ni3 hao3, or type the characters.`));
