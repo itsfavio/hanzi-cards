@@ -2123,10 +2123,12 @@ new ResizeObserver(entries => {
 // Shown once to returning users after an update (new users skip it). For the next release, bump
 // `version` and replace `items`; everyone who saw an older version gets it once.
 const WHATS_NEW = {
-  version: "1.2",
+  version: "1.3",
   items: [
-    ["Instructor mode", "Teach a chapter's new vocab to a class: simplified and traditional side by side, then pinyin, then both stroke orders animating together, then the meaning. Has a full screen view for projecting."],
-    ["Bug fixes", "Small fixes and improvements."]
+    ["Slow button fixed", "Slow now always plays the word slowly, one syllable at a time with a short pause, so you can hear every tone. It used to switch itself off every other press."],
+    ["Faster photo reading", "Photos and pasted screenshots are read much faster, with a loading circle while it works."],
+    ["Chapters folder", "Fold your chapter list away in the sidebar with the Chapters header."],
+    ["Instructor mode", "Pinyin now comes right after the characters, and a tip shows the F and Esc keys for full screen."]
   ],
   foot: "More coming soon, stay tuned! Let me know your thoughts in class if you have any suggestions."
 };
