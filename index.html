@@ -352,6 +352,22 @@ td.pc { width: 22%; } td.dc { width: 48%; }
 .prow .def-in { flex: 1; min-width: 160px; }
 .prow .pnote { font-size: 12px; color: var(--muted); grid-column: 2; }
 .prow.dup { opacity: .6; }
+/* Words whose tone changes their meaning (see toneAmbiguous): red note on the row, and a red check before adding. */
+.prow.tone-warn { border-color: var(--seal); }
+.prow .pnote .warn { color: var(--seal); font-weight: 600; }
+.tone-check { border: 1.5px solid var(--seal); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px;
+  background: color-mix(in srgb, var(--seal) 7%, var(--raised)); }
+.tone-check .warn-title { color: var(--seal); font-weight: 600; font-size: 15px; line-height: 1.4; }
+.tone-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; align-items: start; }
+.tone-item .tw { font-family: var(--f-han); font-size: 28px; font-weight: 500; line-height: 1.1; }
+.tone-opts { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tone-opt { display: flex; gap: 10px; align-items: baseline; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); cursor: pointer; }
+.tone-opt:hover { border-color: var(--ink); }
+.tone-opt:has(input:checked) { border-color: var(--seal); box-shadow: 0 0 0 1px var(--seal); }
+.tone-opt input { accent-color: var(--seal); margin: 0; align-self: center; }
+.tone-opt .tp { font-weight: 600; white-space: nowrap; }
+.tone-opt .td { color: var(--muted); font-size: 13px; min-width: 0; }
+.tone-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .add-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
 .empty { border: 1px dashed var(--line); border-radius: 12px; padding: 34px 20px; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .empty .big { font-family: var(--f-han); font-size: 54px; color: var(--line); line-height: 1; }
@@ -1389,7 +1405,7 @@ function makeItem(rawWord, rest) {
   let trad = readings[0] ? readings[0].t : "";
   let composed = false;
   if (!readings.length) { const c = composedReading(rawWord); readings = [c]; simp = rawWord; trad = c.t; composed = true; }
-  let sel = 0, custom = "", note = "";
+  let sel = 0, custom = "", note = "", confirmed = false;
   if (rest) {
     const toks = rest.trim().split(/\s+/); const targets = readings.map(r => toneless(r.p));
     let acc = "", used = 0, userPin = "";
@@ -1401,10 +1417,10 @@ function makeItem(rawWord, rest) {
     }
     if (used) {
       const ut = tonesIn(userPin);
-      if (ut.length) {
-        const match = readings.findIndex(r => { const rt = r.p.split(/\s+/).map(toneOf).filter(x => x !== 5); return toneless(r.p) === toneless(userPin) && rt.join() === ut.join(); });
-        if (match >= 0) sel = match;
-      } else { const m = readings.findIndex(r => toneless(r.p) === toneless(userPin)); if (m >= 0) sel = m; }
+      const fits = r => { const rt = r.p.split(/\s+/).map(toneOf).filter(x => x !== 5); return toneless(r.p) === toneless(userPin) && (!ut.length || rt.join() === ut.join()); };
+      const matches = readings.map((r, i) => (fits(r) ? i : -1)).filter(i => i >= 0);
+      if (matches.length) sel = matches[0];
+      confirmed = matches.length === 1; // the pinyin they typed picks exactly one reading
       custom = toks.slice(used).join(" ").replace(SEP, "").trim();
     } else {
       custom = rest.replace(SEP, "").trim();
@@ -1412,7 +1428,7 @@ function makeItem(rawWord, rest) {
     }
   }
   if (composed) note = "Not in the dictionary as one word, built from its parts";
-  return { key: uid(), w: simp, t: trad, readings, sel, custom, note, pinOverride: "" };
+  return { key: uid(), w: simp, t: trad, readings, sel, custom, note, pinOverride: "", confirmed };
 }
 // Splits a run of text into dictionary words: whole tokens when the dictionary knows them,
 // otherwise the longest known pieces. Non-Han characters act as separators.
@@ -1482,6 +1498,50 @@ function addCardsToChapter(ch, finals) {
   if (n) saveChapter(ch);
   return n;
 }
+// A word is tone-ambiguous when its readings differ in pinyin, e.g. 东西 dōngxī "east and west" vs dōngxi
+// "thing". Proper-noun readings (capitalised pinyin, like the surname 都 Dū) are left out of the choice.
+function toneChoices(it) {
+  const common = it.readings.map((r, i) => i).filter(i => !/^[A-ZĀÁǍÀĒÉĚÈŌÓǑÒ]/.test(it.readings[i].p));
+  return common.length ? common : it.readings.map((r, i) => i);
+}
+function toneAmbiguous(it) { return new Set(toneChoices(it).map(i => it.readings[i].p.toLowerCase())).size > 1; }
+const needsTone = it => toneAmbiguous(it) && !it.confirmed;
+// The red check shown when Add is pressed while tone-ambiguous words are unconfirmed (S.toneCheck holds their keys).
+function renderToneCheck() {
+  const items = (S.toneCheck || []).map(k => S.pending.find(it => it.key === k)).filter(Boolean);
+  if (!items.length) { S.toneCheck = null; return null; }
+  const box = el("div", "tone-check"); box.id = "toneCheck"; box.setAttribute("role", "alert");
+  box.append(el("div", "warn-title", "⚠ Warning: the following characters have different meanings depending on the tone. Please confirm which definition you need."));
+  for (const it of items) {
+    const opts = el("div", "tone-opts"); opts.setAttribute("role", "radiogroup"); opts.setAttribute("aria-label", "Reading for " + it.w);
+    for (const i of toneChoices(it)) {
+      const r = it.readings[i], lab = el("label", "tone-opt");
+      const radio = el("input"); radio.type = "radio"; radio.name = "tone-" + it.key; radio.checked = it.confirmed && it.sel === i;
+      radio.addEventListener("change", () => { it.sel = i; it.confirmed = true; renderPending(); });
+      const tp = el("span", "tp"); tp.append(toneSpans(r.p));
+      lab.append(radio, tp, el("span", "td", splitDef(prettyDef(r.d)).senses.slice(0, 2).join("; ")));
+      opts.append(lab);
+    }
+    const row = el("div", "tone-item"); row.append(el("div", "tw", disp(it)), opts); box.append(row);
+  }
+  const left = items.filter(it => !it.confirmed).length;
+  const acts = el("div", "tone-actions");
+  const cancel = el("button", "btn ghost", "Cancel"); cancel.type = "button";
+  cancel.addEventListener("click", () => { S.toneCheck = null; renderPending(); });
+  const ok = el("button", "btn primary", left ? `Choose ${left} more` : "Confirm and add"); ok.type = "button"; ok.id = "toneConfirm";
+  ok.disabled = left > 0;
+  ok.addEventListener("click", () => { S.toneCheck = null; addPending(); });
+  acts.append(cancel, ok); box.append(acts);
+  return box;
+}
+// Adds every reviewed word to the current chapter (words it already has are skipped).
+function addPending() {
+  const ch = current();
+  const n = addCardsToChapter(ch, S.pending.map(itemFinal));
+  S.pending = []; S.toneCheck = null; lastCardId = null;
+  renderRail(); renderHead(); buildOrder(true); renderPending();
+  toast(`Added ${n} card${n === 1 ? "" : "s"} to ${ch.name}`);
+}
 function renderPending() {
   const box = $("#pending"); box.textContent = "";
   const ch = current();
@@ -1506,7 +1566,7 @@ function renderPending() {
         c.append(el("span", "cw", isTrad() && e.t ? e.t : e.w), pin, el("span", "cd", splitDef(prettyDef(e.d)).senses[0] || ""));
         c.title = prettyDef(e.d);
         c.addEventListener("click", () => {
-          const it = makeItem(e.w, ""); const i = it.readings.findIndex(r => r.p === p); if (i >= 0) it.sel = i;
+          const it = makeItem(e.w, ""); const i = it.readings.findIndex(r => r.p === p); if (i >= 0) { it.sel = i; it.confirmed = true; }
           S.pending.push(it); S.picks.splice(S.picks.indexOf(pk), 1); renderPending();
         });
         chips.append(c);
@@ -1519,14 +1579,15 @@ function renderPending() {
     const existing = new Set(ch.cards.map(c => c.w));
     const list = el("div", "pending");
     S.pending.forEach(it => {
-      const row = el("div", "prow" + (existing.has(it.w) ? " dup" : ""));
+      const warn = !existing.has(it.w) && needsTone(it);
+      const row = el("div", "prow" + (existing.has(it.w) ? " dup" : "") + (warn ? " tone-warn" : ""));
       row.append(el("div", "pw", disp(it)));
       const fields = el("div", "pfields");
       if (it.readings.length > 1) {
         const s = el("select", "field"); s.id = "sel-" + it.key; s.setAttribute("aria-label", "Reading for " + it.w);
         it.readings.forEach((r, i) => { const o = el("option", null, r.p + " · " + (splitDef(prettyDef(r.d)).senses[0] || "").slice(0, 28)); o.value = i; s.append(o); });
         s.value = it.sel;
-        s.addEventListener("change", () => { it.sel = +s.value; renderPending(); });
+        s.addEventListener("change", () => { it.sel = +s.value; it.confirmed = true; renderPending(); });
         fields.append(s);
       } else {
         const pi = el("input", "field pin-in"); pi.id = "pin-" + it.key; pi.value = itemFinal(it).p; pi.setAttribute("aria-label", "Pinyin for " + it.w);
@@ -1543,25 +1604,34 @@ function renderPending() {
       if (existing.has(it.w)) notes.push("Already in this chapter, will be skipped");
       if (it.note) notes.push(it.note);
       if (it.custom) notes.push("Using your meaning");
-      row.append(el("div", "pnote", notes.join(" · ")));
+      const pn = el("div", "pnote");
+      if (warn) pn.append(el("span", "warn", "Different meaning depending on the tone — pick the one you need"), notes.length ? " · " : "");
+      pn.append(notes.join(" · "));
+      row.append(pn);
       list.append(row);
     });
     const fresh = S.pending.filter(it => !existing.has(it.w));
     const foot = el("div", "add-foot");
     foot.append(el("span", "lbl", `${fresh.length} new card${fresh.length === 1 ? "" : "s"} for “${ch.name}”`));
     const btns = el("div"); btns.style.cssText = "display:flex;gap:8px";
-    const clr = el("button", "btn ghost", "Discard"); clr.addEventListener("click", () => { S.pending = []; renderPending(); });
+    const clr = el("button", "btn ghost", "Discard"); clr.addEventListener("click", () => { S.pending = []; S.toneCheck = null; renderPending(); });
     const add = el("button", "btn primary", fresh.length ? `Add ${fresh.length} card${fresh.length === 1 ? "" : "s"}` : "Nothing new to add");
     add.disabled = !fresh.length;
     add.addEventListener("click", () => {
       // pick up any field still focused
       if (document.activeElement && document.activeElement.dispatchEvent) document.activeElement.dispatchEvent(new Event("change"));
-      const n = addCardsToChapter(ch, S.pending.map(itemFinal));
-      S.pending = []; lastCardId = null;
-      renderRail(); renderHead(); buildOrder(true); renderPending();
-      toast(`Added ${n} card${n === 1 ? "" : "s"} to ${ch.name}`);
+      const needs = fresh.filter(needsTone);
+      if (needs.length) {
+        S.toneCheck = needs.map(it => it.key); renderPending();
+        const tc = $("#toneCheck");
+        if (tc) { tc.scrollIntoView({ block: "start", behavior: "smooth" }); const r = tc.querySelector("input"); if (r) r.focus({ preventScroll: true }); }
+        return;
+      }
+      addPending();
     });
     btns.append(clr, add); foot.append(btns);
+    const check = S.toneCheck ? renderToneCheck() : null;
+    if (check) box.append(check);
     box.append(list, foot);
   } else if (!S.picks.length) {
     const e = el("div", "empty"); e.append(el("div", "big", "词"), el("div", null, `New words show up here for you to check before they go into “${ch.name}”.`));
